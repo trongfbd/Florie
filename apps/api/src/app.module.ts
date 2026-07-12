@@ -14,6 +14,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { MaterialsModule } from './materials/materials.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { OrdersModule } from './orders/orders.module';
+import { StorefrontModule } from './storefront/storefront.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -33,6 +34,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     MaterialsModule,
     InventoryModule,
     OrdersModule,
+    StorefrontModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

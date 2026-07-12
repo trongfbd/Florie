@@ -9,6 +9,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
 import { SetProductMaterialsDto } from './dto/set-product-materials.dto';
+import { QueryPublicProductDto } from './dto/query-public-product.dto';
 
 const PRODUCT_DETAIL_INCLUDE = {
   category: { select: { id: true, name: true, slug: true } },
@@ -95,6 +96,93 @@ export class ProductsService {
     }
 
     return product;
+  }
+
+  /** Public storefront listing: always ACTIVE-only, never overridable via query params. */
+  async findPublicList(query: QueryPublicProductDto): Promise<PaginatedResult<ProductListItem>> {
+    let categoryId: string | undefined;
+    if (query.categorySlug) {
+      const category = await this.prisma.category.findUnique({
+        where: { slug: query.categorySlug },
+        select: { id: true },
+      });
+      if (!category) {
+        return buildPaginatedResult([], 0, query.page, query.limit);
+      }
+      categoryId = category.id;
+    }
+
+    const where: Prisma.ProductWhereInput = {
+      status: 'ACTIVE',
+      ...(query.search && { name: { contains: query.search, mode: 'insensitive' } }),
+      ...(categoryId && { categoryId }),
+      ...(query.color && { color: { equals: query.color, mode: 'insensitive' } }),
+      ...(query.tagId && { tags: { some: { tagId: query.tagId } } }),
+      ...((query.minPrice !== undefined || query.maxPrice !== undefined) && {
+        basePrice: {
+          ...(query.minPrice !== undefined && { gte: query.minPrice }),
+          ...(query.maxPrice !== undefined && { lte: query.maxPrice }),
+        },
+      }),
+    };
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput =
+      query.sort === 'priceAsc'
+        ? { basePrice: 'asc' }
+        : query.sort === 'priceDesc'
+          ? { basePrice: 'desc' }
+          : query.sort === 'name'
+            ? { name: 'asc' }
+            : { createdAt: 'desc' };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where,
+        include: PRODUCT_LIST_INCLUDE,
+        orderBy,
+        skip: query.skip,
+        take: query.take,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return buildPaginatedResult(data, total, query.page, query.limit);
+  }
+
+  async findPublicBySlug(slug: string): Promise<ProductDetail> {
+    const product = await this.prisma.product.findFirst({
+      where: { slug, status: 'ACTIVE' },
+      include: PRODUCT_DETAIL_INCLUDE,
+    });
+
+    if (!product) {
+      throw new NotFoundException('Không tìm thấy sản phẩm');
+    }
+
+    // Best-effort view counter — never blocks the response on failure.
+    this.prisma.product
+      .update({ where: { id: product.id }, data: { viewCount: { increment: 1 } } })
+      .catch(() => undefined);
+
+    return product;
+  }
+
+  async findRelatedProducts(slug: string, limit = 4): Promise<ProductListItem[]> {
+    const product = await this.prisma.product.findFirst({
+      where: { slug, status: 'ACTIVE' },
+      select: { id: true, categoryId: true },
+    });
+
+    if (!product) {
+      return [];
+    }
+
+    return this.prisma.product.findMany({
+      where: { categoryId: product.categoryId, status: 'ACTIVE', id: { not: product.id } },
+      include: PRODUCT_LIST_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<ProductDetail> {

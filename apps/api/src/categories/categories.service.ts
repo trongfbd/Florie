@@ -69,6 +69,28 @@ export class CategoriesService {
     return category;
   }
 
+  /** Public storefront: only ever active categories, ordered for display. */
+  findPublicList(): Promise<CategoryWithMeta[]> {
+    return this.prisma.category.findMany({
+      where: { isActive: true },
+      include: CATEGORY_LIST_INCLUDE,
+      orderBy: { displayOrder: 'asc' },
+    });
+  }
+
+  async findPublicBySlug(slug: string): Promise<CategoryWithMeta> {
+    const category = await this.prisma.category.findFirst({
+      where: { slug, isActive: true },
+      include: CATEGORY_LIST_INCLUDE,
+    });
+
+    if (!category) {
+      throw new NotFoundException('Không tìm thấy danh mục');
+    }
+
+    return category;
+  }
+
   async update(id: string, dto: UpdateCategoryDto): Promise<CategoryWithMeta> {
     await this.findOne(id);
 

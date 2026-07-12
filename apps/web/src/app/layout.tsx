@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +21,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Florie — Flower Shop",
+  title: { default: "Florie — Flower Shop", template: "%s | Florie" },
   description: "Mỗi bó hoa, một câu chuyện.",
 };
 
@@ -33,8 +35,12 @@ export default function RootLayout({
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
-        <AppProviders>{children}</AppProviders>
+      <body className="flex min-h-full flex-col bg-background text-foreground font-sans">
+        <AppProviders>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </AppProviders>
       </body>
     </html>
   );
