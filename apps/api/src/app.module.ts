@@ -6,6 +6,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { StorageModule } from './storage/storage.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { CategoriesModule } from './categories/categories.module';
+import { ProductsModule } from './products/products.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -14,9 +18,13 @@ import { RolesGuard } from './auth/guards/roles.guard';
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 20 }]),
     PrismaModule,
+    StorageModule,
     HealthModule,
     UsersModule,
     AuthModule,
+    UploadsModule,
+    CategoriesModule,
+    ProductsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
