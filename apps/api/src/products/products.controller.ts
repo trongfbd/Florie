@@ -22,6 +22,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
 import { AddProductImageDto } from './dto/add-product-image.dto';
+import { SetProductMaterialsDto } from './dto/set-product-materials.dto';
 
 @ApiTags('products')
 @Controller('products')
@@ -84,5 +85,11 @@ export class ProductsController {
   @ApiOperation({ summary: 'Xoá ảnh sản phẩm' })
   removeImage(@Param('id') id: string, @Param('imageId') imageId: string) {
     return this.productsService.removeImage(id, imageId);
+  }
+
+  @Patch(':id/materials')
+  @ApiOperation({ summary: 'Thiết lập công thức bó hoa (BOM) — thay toàn bộ danh sách' })
+  setMaterials(@Param('id') id: string, @Body() dto: SetProductMaterialsDto) {
+    return this.productsService.setMaterials(id, dto);
   }
 }

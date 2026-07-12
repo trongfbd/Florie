@@ -8,6 +8,7 @@ import type { StorageService } from '../storage/storage.service.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
+import { SetProductMaterialsDto } from './dto/set-product-materials.dto';
 
 const PRODUCT_DETAIL_INCLUDE = {
   category: { select: { id: true, name: true, slug: true } },
@@ -181,6 +182,33 @@ export class ProductsService {
     if (image.storageKey) {
       await this.storageService.delete(image.storageKey).catch(() => undefined);
     }
+  }
+
+  async setMaterials(productId: string, dto: SetProductMaterialsDto): Promise<ProductDetail> {
+    await this.findOne(productId);
+
+    const materialIds = dto.materials.map((item) => item.materialId);
+    const foundMaterials = await this.prisma.material.findMany({
+      where: { id: { in: materialIds } },
+      select: { id: true },
+    });
+    const missing = materialIds.filter((id) => !foundMaterials.some((m) => m.id === id));
+    if (missing.length > 0) {
+      throw new NotFoundException(`Không tìm thấy vật tư: ${missing.join(', ')}`);
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.productMaterial.deleteMany({ where: { productId } }),
+      this.prisma.productMaterial.createMany({
+        data: dto.materials.map((item) => ({
+          productId,
+          materialId: item.materialId,
+          quantity: item.quantity,
+        })),
+      }),
+    ]);
+
+    return this.findOne(productId);
   }
 
   private assertValidPricing(basePrice: number, salePrice?: number): void {
