@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -8,6 +9,7 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   app.setGlobalPrefix('api/v1');
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
