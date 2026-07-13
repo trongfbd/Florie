@@ -16,6 +16,7 @@ import {
   Settings,
   Users,
   Wallet,
+  Sparkles,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -46,6 +47,10 @@ const NAV_GROUPS = [
       { href: "/admin/khach-hang", label: "Khách hàng", icon: Users },
       { href: "/admin/chi-phi", label: "Chi phí", icon: Wallet },
     ],
+  },
+  {
+    label: "Trợ lý AI",
+    items: [{ href: "/admin/tro-ly-ban-hang", label: "Trợ lý bán hàng", icon: Sparkles }],
   },
 ];
 

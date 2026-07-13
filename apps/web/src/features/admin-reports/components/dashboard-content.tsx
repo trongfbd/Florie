@@ -2,6 +2,8 @@
 
 import { formatVnd } from "@/lib/format";
 import { StatTile } from "@/components/admin/stat-tile";
+import { DashboardQaWidget } from "@/features/admin-ai/components/dashboard-qa-widget";
+import { InventoryInsightsCard } from "@/features/admin-ai/components/inventory-insights-card";
 import { useReportSummary } from "../hooks";
 import { RevenueChart } from "./revenue-chart";
 import { ExpenseBreakdown } from "./expense-breakdown";
@@ -57,6 +59,11 @@ export function DashboardContent() {
           <h2 className="font-display text-lg font-bold text-heading">Sản phẩm bán chạy</h2>
           <TopProductsList />
         </section>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DashboardQaWidget />
+        <InventoryInsightsCard />
       </div>
     </div>
   );

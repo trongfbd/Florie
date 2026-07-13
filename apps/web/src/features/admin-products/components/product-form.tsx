@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useCategories } from "@/features/admin-categories/hooks";
+import { AiGenerateButton } from "@/features/admin-ai/components/ai-generate-button";
 import { useCreateProduct, useUpdateProduct } from "../hooks";
 import type { ProductDetail, ProductStatus } from "../types";
 
@@ -39,6 +40,8 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -55,6 +58,8 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
         }
       : { status: "DRAFT" },
   });
+
+  const nameValue = watch("name");
 
   function onSubmit(values: FormValues) {
     const payload = {
@@ -120,7 +125,14 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">Mô tả</label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold text-heading">Mô tả</label>
+          <AiGenerateButton
+            contentType="PRODUCT_DESCRIPTION"
+            topic={nameValue ?? ""}
+            onGenerated={(content) => setValue("description", content)}
+          />
+        </div>
         <textarea
           rows={4}
           {...register("description")}

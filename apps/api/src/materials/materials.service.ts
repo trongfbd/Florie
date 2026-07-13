@@ -62,6 +62,15 @@ export class MaterialsService {
     return buildPaginatedResult(data, lowStockItems.length, query.page, query.limit);
   }
 
+  /** Unpaginated low-stock list for internal callers (e.g. the AI inventory-insights endpoint). */
+  async findLowStock(): Promise<MaterialWithSupplier[]> {
+    const materials = await this.prisma.material.findMany({
+      where: { isActive: true },
+      include: MATERIAL_INCLUDE,
+    });
+    return materials.filter((material) => material.stockQuantity.lessThanOrEqualTo(material.minStockThreshold));
+  }
+
   async findOne(id: string): Promise<MaterialWithSupplier> {
     const material = await this.prisma.material.findUnique({ where: { id }, include: MATERIAL_INCLUDE });
     if (!material) {

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { AiGenerateButton } from "@/features/admin-ai/components/ai-generate-button";
 import { useCreateBlog, useUpdateBlog } from "../hooks";
 import type { Blog } from "../types";
 
@@ -28,6 +29,8 @@ export function BlogForm({ blog }: { blog?: Blog }) {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -43,6 +46,8 @@ export function BlogForm({ blog }: { blog?: Blog }) {
         }
       : { status: "DRAFT" },
   });
+
+  const titleValue = watch("title");
 
   function onSubmit(values: FormValues) {
     mutation.mutate(values, { onSuccess: () => router.push("/admin/blog") });
@@ -77,7 +82,14 @@ export function BlogForm({ blog }: { blog?: Blog }) {
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">Nội dung (Markdown)</label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold text-heading">Nội dung (Markdown)</label>
+          <AiGenerateButton
+            contentType="BLOG_POST"
+            topic={titleValue ?? ""}
+            onGenerated={(content) => setValue("content", content)}
+          />
+        </div>
         <textarea
           rows={14}
           {...register("content")}

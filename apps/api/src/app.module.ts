@@ -29,6 +29,7 @@ import { PopupsModule } from './popups/popups.module';
 import { SiteSettingsModule } from './site-settings/site-settings.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ReportsModule } from './reports/reports.module';
+import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -63,6 +64,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     SiteSettingsModule,
     ExpensesModule,
     ReportsModule,
+    AiModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
