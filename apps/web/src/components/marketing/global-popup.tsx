@@ -10,12 +10,13 @@ import type { Popup } from "@/features/marketing/types";
 const SESSION_KEY = "florie-popup-shown";
 
 const CONFETTI = [
-  { left: "8%", top: "14%", size: 10, delay: 0, color: "bg-white/70" },
-  { left: "88%", top: "10%", size: 8, delay: 0.4, color: "bg-primary" },
-  { left: "16%", top: "78%", size: 7, delay: 0.8, color: "bg-primary" },
-  { left: "80%", top: "72%", size: 12, delay: 0.2, color: "bg-white/60" },
-  { left: "50%", top: "8%", size: 6, delay: 0.6, color: "bg-white/50" },
-  { left: "92%", top: "42%", size: 9, delay: 1, color: "bg-primary" },
+  { left: "6%", top: "10%", size: 10, delay: 0, color: "bg-white/80" },
+  { left: "90%", top: "8%", size: 8, delay: 0.4, color: "bg-secondary" },
+  { left: "12%", top: "88%", size: 7, delay: 0.8, color: "bg-secondary" },
+  { left: "85%", top: "82%", size: 12, delay: 0.2, color: "bg-white/70" },
+  { left: "48%", top: "5%", size: 6, delay: 0.6, color: "bg-white/60" },
+  { left: "94%", top: "45%", size: 9, delay: 1, color: "bg-secondary" },
+  { left: "4%", top: "48%", size: 8, delay: 1.2, color: "bg-white/60" },
 ];
 
 export function GlobalPopup({ popup }: { popup: Popup | null }) {
@@ -42,16 +43,16 @@ export function GlobalPopup({ popup }: { popup: Popup | null }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
           onClick={() => setOpen(false)}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.85, y: 24, rotate: -1.5 }}
-            animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
+            initial={{ opacity: 0, scale: 0.85, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 16 }}
             transition={{ type: "spring", stiffness: 320, damping: 26 }}
             onClick={(event) => event.stopPropagation()}
-            className="relative w-full max-w-md overflow-hidden rounded-brand shadow-2xl shadow-black/40"
+            className="relative w-full max-w-sm overflow-hidden rounded-2xl bg-gradient-to-b from-accent to-heading shadow-2xl shadow-black/40"
           >
             <button
               type="button"
@@ -62,55 +63,57 @@ export function GlobalPopup({ popup }: { popup: Popup | null }) {
               <X size={16} />
             </button>
 
-            <div className="relative overflow-hidden bg-gradient-to-br from-accent via-accent to-heading">
-              {popup.imageUrl && (
-                <Image
-                  src={popup.imageUrl}
-                  alt=""
-                  fill
-                  className="object-cover opacity-40 mix-blend-overlay"
-                />
+            {/* Confetti */}
+            {CONFETTI.map((c, i) => (
+              <motion.span
+                key={i}
+                className={`pointer-events-none absolute z-10 rounded-full ${c.color}`}
+                style={{ left: c.left, top: c.top, width: c.size, height: c.size }}
+                animate={{ y: [0, -8, 0], opacity: [0.9, 0.5, 0.9] }}
+                transition={{ duration: 2.4, delay: c.delay, repeat: Infinity, ease: "easeInOut" }}
+              />
+            ))}
+
+            <div className="relative px-6 pb-7 pt-9 text-center">
+              {/* Voucher ticket */}
+              <div className="relative mx-auto mb-5 w-full max-w-[260px]">
+                <div className="overflow-hidden rounded-xl bg-white shadow-lg">
+                  {popup.imageUrl ? (
+                    <div className="relative h-28 w-full">
+                      <Image src={popup.imageUrl} alt="" fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-28 w-full items-center justify-center bg-secondary">
+                      <Gift size={40} className="text-accent" strokeWidth={1.5} />
+                    </div>
+                  )}
+                  <div className="border-t-2 border-dashed border-secondary px-4 py-3">
+                    <p className="font-display text-lg font-extrabold uppercase leading-tight text-accent">
+                      {popup.title}
+                    </p>
+                  </div>
+                </div>
+                {/* Ticket notches — sit on the outer (non-clipped) wrapper so they poke past the ticket edge */}
+                <span className="absolute -left-3 top-28 h-6 w-6 -translate-y-1/2 rounded-full bg-heading" />
+                <span className="absolute -right-3 top-28 h-6 w-6 -translate-y-1/2 rounded-full bg-heading" />
+              </div>
+
+              {popup.content && (
+                <p className="mx-auto max-w-xs text-sm font-medium leading-relaxed text-white/90">
+                  {popup.content}
+                </p>
               )}
 
-              {/* Confetti */}
-              {CONFETTI.map((c, i) => (
-                <motion.span
-                  key={i}
-                  className={`absolute rounded-full ${c.color}`}
-                  style={{ left: c.left, top: c.top, width: c.size, height: c.size }}
-                  animate={{ y: [0, -8, 0], opacity: [0.9, 0.5, 0.9] }}
-                  transition={{ duration: 2.4, delay: c.delay, repeat: Infinity, ease: "easeInOut" }}
-                />
-              ))}
-
-              <div className="relative flex flex-col items-center gap-3 px-8 pb-8 pt-10 text-center">
-                <motion.div
-                  animate={{ rotate: [0, -8, 8, -8, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
-                  className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15 shadow-inner"
+              {popup.linkUrl && (
+                <Link
+                  href={popup.linkUrl}
+                  onClick={() => setOpen(false)}
+                  className="group mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-8 py-3 text-sm font-bold text-accent shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
                 >
-                  <Gift size={30} className="text-white" strokeWidth={1.75} />
-                </motion.div>
-
-                <h2 className="font-display text-2xl font-bold leading-tight text-white drop-shadow-sm">
-                  {popup.title}
-                </h2>
-
-                {popup.content && (
-                  <p className="max-w-xs text-sm leading-relaxed text-white/85">{popup.content}</p>
-                )}
-
-                {popup.linkUrl && (
-                  <Link
-                    href={popup.linkUrl}
-                    onClick={() => setOpen(false)}
-                    className="group mt-1 inline-flex items-center gap-1.5 rounded-full bg-white px-7 py-3 text-sm font-bold text-accent shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
-                  >
-                    <Sparkles size={15} className="transition-transform group-hover:rotate-12" />
-                    Xem ngay
-                  </Link>
-                )}
-              </div>
+                  <Sparkles size={15} className="transition-transform group-hover:rotate-12" />
+                  Xem ngay
+                </Link>
+              )}
             </div>
           </motion.div>
         </motion.div>
