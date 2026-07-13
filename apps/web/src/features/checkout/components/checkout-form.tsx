@@ -209,7 +209,12 @@ export function CheckoutForm() {
             <label className="text-sm font-medium text-heading">Mã giảm giá (không bắt buộc)</label>
             <div className="flex gap-2">
               <input
-                {...register("voucherCode", { onChange: () => setVoucherPreview(null) })}
+                {...register("voucherCode", {
+                  onChange: (event) => {
+                    event.target.value = event.target.value.toUpperCase();
+                    setVoucherPreview(null);
+                  },
+                })}
                 placeholder="VD: FLORIE10"
                 className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm uppercase outline-none focus:border-accent"
               />

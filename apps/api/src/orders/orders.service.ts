@@ -344,7 +344,11 @@ export class OrdersService {
       return { discountAmount: 0 };
     }
 
-    const voucher = await this.prisma.voucher.findUnique({ where: { code } });
+    // Must match VouchersService.validate()'s normalization exactly — codes are
+    // stored uppercase (see VouchersService.create/update), and the storefront's
+    // voucher-preview endpoint already uppercases before lookup. Skipping this
+    // here let a case mismatch pass preview but fail at real order creation.
+    const voucher = await this.prisma.voucher.findUnique({ where: { code: code.trim().toUpperCase() } });
     if (!voucher) {
       throw new BadRequestException('Voucher không hợp lệ');
     }
