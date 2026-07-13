@@ -460,6 +460,29 @@ model Blog {
   @@index([authorId])
 }
 
+model Popup {
+  id           String    @id @default(cuid())
+  title        String
+  imageUrl     String?
+  content      String?
+  linkUrl      String?
+  isActive     Boolean   @default(true)
+  startAt      DateTime?
+  endAt        DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([isActive])
+}
+
+model SiteSettings {
+  id                 String   @id @default(cuid())
+  facebookPixelId    String?
+  googleAnalyticsId  String?
+  googleTagManagerId String?
+  updatedAt          DateTime @updatedAt
+}
+
 // ============================================================
 // INVENTORY (Kho / Vật tư / BOM)
 // ============================================================

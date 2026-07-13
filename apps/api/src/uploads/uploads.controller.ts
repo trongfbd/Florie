@@ -15,7 +15,7 @@ import { STORAGE_SERVICE } from '../storage/storage.service.interface';
 import type { StorageService } from '../storage/storage.service.interface';
 import { UploadResponseDto } from './dto/upload-response.dto';
 
-const ALLOWED_FOLDERS = ['categories', 'blog', 'banners'] as const;
+const ALLOWED_FOLDERS = ['categories', 'blog', 'banners', 'combos', 'popups'] as const;
 type AllowedFolder = (typeof ALLOWED_FOLDERS)[number];
 
 @ApiTags('uploads')

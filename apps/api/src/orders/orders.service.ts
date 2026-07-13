@@ -1,6 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
-  DiscountType,
   OrderSource,
   OrderStatus,
   PaymentMethod,
@@ -10,6 +9,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginatedResult, PaginatedResult } from '../common/dto/paginated-result.dto';
+import { computeVoucherDiscount } from '../common/utils/voucher-discount.util';
 import { InventoryService } from '../inventory/inventory.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
@@ -42,6 +42,11 @@ interface ResolvedOrderItem {
   quantity: number;
   unitPrice: number;
   subtotal: number;
+}
+
+interface FlashSaleIncrement {
+  flashSaleItemId: string;
+  quantity: number;
 }
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -77,7 +82,7 @@ export class OrdersService {
       }
     }
 
-    const { items, subtotal } = await this.resolveOrderItems(dto.items);
+    const { items, subtotal, flashSaleIncrements } = await this.resolveOrderItems(dto.items);
     const { voucherId, discountAmount } = await this.resolveVoucher(dto.voucherCode, subtotal);
     const shippingFee = dto.shippingFee ?? 0;
     const total = Math.max(0, subtotal + shippingFee - discountAmount);
@@ -120,6 +125,13 @@ export class OrdersService {
 
       if (voucherId) {
         await tx.voucher.update({ where: { id: voucherId }, data: { usedCount: { increment: 1 } } });
+      }
+
+      for (const increment of flashSaleIncrements) {
+        await tx.flashSaleItem.update({
+          where: { id: increment.flashSaleItemId },
+          data: { soldQuantity: { increment: increment.quantity } },
+        });
       }
 
       return order;
@@ -240,9 +252,10 @@ export class OrdersService {
 
   private async resolveOrderItems(
     items: CreateOrderItemDto[],
-  ): Promise<{ items: ResolvedOrderItem[]; subtotal: number }> {
+  ): Promise<{ items: ResolvedOrderItem[]; subtotal: number; flashSaleIncrements: FlashSaleIncrement[] }> {
     let subtotal = 0;
     const resolved: ResolvedOrderItem[] = [];
+    const flashSaleIncrements: FlashSaleIncrement[] = [];
 
     for (const item of items) {
       if (item.productId && item.comboId) {
@@ -260,7 +273,13 @@ export class OrdersService {
         if (product.status === ProductStatus.ARCHIVED) {
           throw new BadRequestException(`Sản phẩm "${product.name}" đã ngừng kinh doanh`);
         }
-        const unitPrice = product.salePrice ?? product.basePrice;
+
+        const flashSaleItem = await this.findActiveFlashSaleItem(product.id, item.quantity);
+        const unitPrice = flashSaleItem?.salePrice ?? product.salePrice ?? product.basePrice;
+        if (flashSaleItem) {
+          flashSaleIncrements.push({ flashSaleItemId: flashSaleItem.id, quantity: item.quantity });
+        }
+
         resolved.push({
           productId: product.id,
           itemName: product.name,
@@ -288,7 +307,33 @@ export class OrdersService {
       }
     }
 
-    return { items: resolved, subtotal };
+    return { items: resolved, subtotal, flashSaleIncrements };
+  }
+
+  /**
+   * Returns the active flash-sale price for a product, if one exists and still has
+   * capacity for the requested quantity. Picks the sale ending soonest when more than
+   * one is active for the same product. Sold-out sales (soldQuantity would exceed
+   * quantityLimit) silently fall back to the product's normal price.
+   */
+  private async findActiveFlashSaleItem(
+    productId: string,
+    requestedQuantity: number,
+  ): Promise<{ id: string; salePrice: number } | null> {
+    const now = new Date();
+    const candidates = await this.prisma.flashSaleItem.findMany({
+      where: {
+        productId,
+        flashSale: { isActive: true, startAt: { lte: now }, endAt: { gte: now } },
+      },
+      orderBy: { flashSale: { endAt: 'asc' } },
+    });
+
+    const withCapacity = candidates.find(
+      (item) => item.quantityLimit === null || item.soldQuantity + requestedQuantity <= item.quantityLimit,
+    );
+
+    return withCapacity ? { id: withCapacity.id, salePrice: withCapacity.salePrice } : null;
   }
 
   private async resolveVoucher(
@@ -300,32 +345,11 @@ export class OrdersService {
     }
 
     const voucher = await this.prisma.voucher.findUnique({ where: { code } });
-    if (!voucher || !voucher.isActive) {
+    if (!voucher) {
       throw new BadRequestException('Voucher không hợp lệ');
     }
 
-    const now = new Date();
-    if (now < voucher.startAt || now > voucher.endAt) {
-      throw new BadRequestException('Voucher đã hết hạn hoặc chưa đến ngày áp dụng');
-    }
-    if (voucher.usageLimit !== null && voucher.usedCount >= voucher.usageLimit) {
-      throw new BadRequestException('Voucher đã hết lượt sử dụng');
-    }
-    if (subtotal < voucher.minOrderValue) {
-      throw new BadRequestException(
-        `Đơn hàng cần tối thiểu ${voucher.minOrderValue}đ để áp dụng voucher này`,
-      );
-    }
-
-    let discountAmount =
-      voucher.discountType === DiscountType.PERCENTAGE
-        ? Math.floor((subtotal * voucher.discountValue) / 100)
-        : voucher.discountValue;
-
-    if (voucher.maxDiscountAmount !== null) {
-      discountAmount = Math.min(discountAmount, voucher.maxDiscountAmount);
-    }
-    discountAmount = Math.min(discountAmount, subtotal);
+    const discountAmount = computeVoucherDiscount(voucher, subtotal);
 
     return { voucherId: voucher.id, discountAmount };
   }

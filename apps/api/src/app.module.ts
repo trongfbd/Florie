@@ -20,6 +20,13 @@ import { CustomerAuthModule } from './customer-auth/customer-auth.module';
 import { StorefrontOrdersModule } from './storefront-orders/storefront-orders.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { VouchersModule } from './vouchers/vouchers.module';
+import { CombosModule } from './combos/combos.module';
+import { FlashSalesModule } from './flash-sales/flash-sales.module';
+import { BannersModule } from './banners/banners.module';
+import { BlogsModule } from './blogs/blogs.module';
+import { PopupsModule } from './popups/popups.module';
+import { SiteSettingsModule } from './site-settings/site-settings.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -45,6 +52,13 @@ import { RolesGuard } from './auth/guards/roles.guard';
     StorefrontOrdersModule,
     WishlistModule,
     ReviewsModule,
+    VouchersModule,
+    CombosModule,
+    FlashSalesModule,
+    BannersModule,
+    BlogsModule,
+    PopupsModule,
+    SiteSettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
