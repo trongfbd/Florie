@@ -2,12 +2,15 @@ import { randomBytes, createHash } from 'crypto';
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { Customer } from '@prisma/client';
+import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomersService } from '../customers/customers.service';
 import { CustomerJwtPayload } from './types/customer-jwt-payload.type';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { CustomerAuthResponseDto } from './dto/customer-auth-response.dto';
+import { toAuthenticatedCustomer } from './utils/to-authenticated-customer';
 
 const PASSWORD_SALT_ROUNDS = 10;
 
@@ -17,18 +20,22 @@ interface TokenPair {
   refreshTokenExpiresAt: Date;
 }
 
+type AuthResult = CustomerAuthResponseDto & { refreshToken: string; refreshTokenExpiresAt: Date };
+
 @Injectable()
 export class CustomerAuthService {
+  private readonly googleClient: OAuth2Client;
+
   constructor(
     private readonly customersService: CustomersService,
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(this.configService.get<string>('GOOGLE_CLIENT_ID'));
+  }
 
-  async register(
-    dto: RegisterCustomerDto,
-  ): Promise<CustomerAuthResponseDto & { refreshToken: string; refreshTokenExpiresAt: Date }> {
+  async register(dto: RegisterCustomerDto): Promise<AuthResult> {
     const existing = await this.customersService.findByPhone(dto.phone);
     if (existing) {
       throw new ConflictException('Số điện thoại này đã được đăng ký');
@@ -39,23 +46,10 @@ export class CustomerAuthService {
       data: { name: dto.name, phone: dto.phone, email: dto.email, passwordHash },
     });
 
-    const { accessToken, refreshToken, refreshTokenExpiresAt } = await this.issueTokenPair(
-      customer.id,
-      customer.phone,
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-      refreshTokenExpiresAt,
-      customer: { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email },
-    };
+    return this.buildAuthResult(customer);
   }
 
-  async login(
-    phone: string,
-    password: string,
-  ): Promise<CustomerAuthResponseDto & { refreshToken: string; refreshTokenExpiresAt: Date }> {
+  async login(phone: string, password: string): Promise<AuthResult> {
     const customer = await this.customersService.findByPhone(phone);
 
     if (!customer || !customer.passwordHash) {
@@ -67,22 +61,65 @@ export class CustomerAuthService {
       throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
     }
 
-    const { accessToken, refreshToken, refreshTokenExpiresAt } = await this.issueTokenPair(
-      customer.id,
-      customer.phone,
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-      refreshTokenExpiresAt,
-      customer: { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email },
-    };
+    return this.buildAuthResult(customer);
   }
 
-  async refresh(
-    rawRefreshToken: string,
-  ): Promise<CustomerAuthResponseDto & { refreshToken: string; refreshTokenExpiresAt: Date }> {
+  /**
+   * Verifies a Google ID token (never trusts client-supplied profile data
+   * directly) and finds-or-creates the matching customer:
+   *  1. Existing googleId match → log in as that customer.
+   *  2. No googleId match, but a Google-*verified* email matches an existing
+   *     phone-registered account → link this Google identity to it.
+   *  3. Otherwise → create a brand-new customer (no phone yet; collected
+   *     later at checkout).
+   */
+  async loginWithGoogle(idToken: string): Promise<AuthResult> {
+    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) {
+      throw new UnauthorizedException('Đăng nhập Google chưa được cấu hình trên máy chủ');
+    }
+
+    let payload;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({ idToken, audience: clientId });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Token Google không hợp lệ');
+    }
+
+    if (!payload?.sub || !payload.email) {
+      throw new UnauthorizedException('Không lấy được thông tin tài khoản Google');
+    }
+
+    const { sub: googleId, email, name, picture, email_verified: emailVerified } = payload;
+
+    let customer = await this.prisma.customer.findUnique({ where: { googleId } });
+
+    if (!customer && emailVerified) {
+      const existingByEmail = await this.prisma.customer.findUnique({ where: { email } });
+      if (existingByEmail) {
+        customer = await this.prisma.customer.update({
+          where: { id: existingByEmail.id },
+          data: { googleId, avatarUrl: picture ?? existingByEmail.avatarUrl },
+        });
+      }
+    }
+
+    if (!customer) {
+      customer = await this.prisma.customer.create({
+        data: {
+          googleId,
+          email,
+          name: name ?? email,
+          avatarUrl: picture,
+        },
+      });
+    }
+
+    return this.buildAuthResult(customer);
+  }
+
+  async refresh(rawRefreshToken: string): Promise<AuthResult> {
     const tokenHash = this.hashToken(rawRefreshToken);
 
     const existing = await this.prisma.customerRefreshToken.findUnique({
@@ -99,22 +136,7 @@ export class CustomerAuthService {
       data: { revokedAt: new Date() },
     });
 
-    const { accessToken, refreshToken, refreshTokenExpiresAt } = await this.issueTokenPair(
-      existing.customer.id,
-      existing.customer.phone,
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-      refreshTokenExpiresAt,
-      customer: {
-        id: existing.customer.id,
-        name: existing.customer.name,
-        phone: existing.customer.phone,
-        email: existing.customer.email,
-      },
-    };
+    return this.buildAuthResult(existing.customer);
   }
 
   async logout(rawRefreshToken: string | undefined): Promise<void> {
@@ -129,7 +151,21 @@ export class CustomerAuthService {
     });
   }
 
-  private async issueTokenPair(customerId: string, phone: string): Promise<TokenPair> {
+  private async buildAuthResult(customer: Customer): Promise<AuthResult> {
+    const { accessToken, refreshToken, refreshTokenExpiresAt } = await this.issueTokenPair(
+      customer.id,
+      customer.phone,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      refreshTokenExpiresAt,
+      customer: toAuthenticatedCustomer(customer),
+    };
+  }
+
+  private async issueTokenPair(customerId: string, phone: string | null): Promise<TokenPair> {
     const payload: CustomerJwtPayload = { sub: customerId, phone, type: 'customer' };
     const accessToken = await this.jwtService.signAsync(payload);
 

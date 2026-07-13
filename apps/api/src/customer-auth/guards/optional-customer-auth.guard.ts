@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { CustomersService } from '../../customers/customers.service';
 import { CustomerJwtPayload } from '../types/customer-jwt-payload.type';
+import { toAuthenticatedCustomer } from '../utils/to-authenticated-customer';
 
 /**
  * Never blocks the request. If a valid customer Bearer token is present,
@@ -29,12 +30,7 @@ export class OptionalCustomerAuthGuard implements CanActivate {
         );
         const customer = await this.customersService.findById(payload.sub);
         if (customer) {
-          request.customer = {
-            id: customer.id,
-            name: customer.name,
-            phone: customer.phone,
-            email: customer.email,
-          };
+          request.customer = toAuthenticatedCustomer(customer);
         }
       } catch {
         // Invalid/expired token on an optional-auth route just means "treat as guest".

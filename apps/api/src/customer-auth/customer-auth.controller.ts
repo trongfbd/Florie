@@ -18,6 +18,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { CustomerAuthService } from './customer-auth.service';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { LoginCustomerDto } from './dto/login-customer.dto';
+import { GoogleLoginDto } from './dto/google-login.dto';
 import { CustomerAuthResponseDto, CustomerProfileDto } from './dto/customer-auth-response.dto';
 import { CustomerJwtAuthGuard } from './guards/customer-jwt-auth.guard';
 import { CurrentCustomer } from './decorators/current-customer.decorator';
@@ -62,6 +63,22 @@ export class CustomerAuthController {
       dto.phone,
       dto.password,
     );
+    this.setRefreshTokenCookie(response, refreshToken, refreshTokenExpiresAt);
+    return result;
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Đăng nhập / đăng ký bằng Google' })
+  @ApiOkResponse({ type: CustomerAuthResponseDto })
+  async google(
+    @Body() dto: GoogleLoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<CustomerAuthResponseDto> {
+    const { refreshToken, refreshTokenExpiresAt, ...result } =
+      await this.customerAuthService.loginWithGoogle(dto.idToken);
     this.setRefreshTokenCookie(response, refreshToken, refreshTokenExpiresAt);
     return result;
   }

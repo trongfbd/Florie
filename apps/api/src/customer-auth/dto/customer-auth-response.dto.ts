@@ -7,11 +7,14 @@ export class CustomerProfileDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty()
-  phone: string;
+  @ApiPropertyOptional()
+  phone: string | null;
 
   @ApiPropertyOptional()
   email: string | null;
+
+  @ApiPropertyOptional()
+  avatarUrl: string | null;
 }
 
 export class CustomerAuthResponseDto {

@@ -152,8 +152,13 @@ model Customer {
   id           String   @id @default(cuid())
   name         String
   email        String?  @unique
-  phone        String   @unique
+  // Optional: Google sign-in never provides a phone number. Delivery orders
+  // still always require a phone (recipientPhone/guestPhone on Order), so
+  // this doesn't weaken order fulfillment — only the account record itself.
+  phone        String?  @unique
   passwordHash String?
+  googleId     String?  @unique
+  avatarUrl    String?
   totalSpent   Int      @default(0) // VND, kept in sync when an order completes
   isVip        Boolean  @default(false)
   createdAt    DateTime @default(now())

@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { CustomersService } from '../../customers/customers.service';
 import { AuthenticatedCustomer, CustomerJwtPayload } from '../types/customer-jwt-payload.type';
+import { toAuthenticatedCustomer } from '../utils/to-authenticated-customer';
 
 @Injectable()
 export class CustomerJwtStrategy extends PassportStrategy(Strategy, 'customer-jwt') {
@@ -25,6 +26,6 @@ export class CustomerJwtStrategy extends PassportStrategy(Strategy, 'customer-jw
       throw new UnauthorizedException('Tài khoản không tồn tại');
     }
 
-    return { id: customer.id, name: customer.name, phone: customer.phone, email: customer.email };
+    return toAuthenticatedCustomer(customer);
   }
 }
