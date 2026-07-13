@@ -4,6 +4,12 @@ import { SearchBox } from "./search-box";
 import { Container } from "./container";
 import { HeaderActions } from "./header-actions";
 
+const STATIC_NAV_LINKS = [
+  { href: "/combo", label: "Combo" },
+  { href: "/flash-sale", label: "Flash Sale" },
+  { href: "/blog", label: "Blog" },
+];
+
 export async function Header() {
   const categories = await getCategories().catch(() => []);
 
@@ -23,6 +29,19 @@ export async function Header() {
                 className="relative py-1 transition-colors hover:text-accent after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
               >
                 {category.name}
+              </Link>
+            ))}
+            {STATIC_NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={
+                  link.label === "Flash Sale"
+                    ? "relative py-1 font-bold text-accent after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
+                    : "relative py-1 transition-colors hover:text-accent after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
+                }
+              >
+                {link.label}
               </Link>
             ))}
           </nav>

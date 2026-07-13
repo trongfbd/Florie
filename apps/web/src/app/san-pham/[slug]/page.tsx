@@ -72,7 +72,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           <div className="flex gap-3">
             <AddToCartButton
-              productId={product.id}
+              id={product.id}
               name={product.name}
               slug={product.slug}
               imageUrl={product.images[0]?.url ?? null}

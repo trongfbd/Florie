@@ -7,6 +7,16 @@ import type {
   StorefrontProductQuery,
 } from '@/features/storefront/types';
 import type { Review } from '@/features/reviews/types';
+import type {
+  Banner,
+  BannerPosition,
+  Blog,
+  BlogListResult,
+  Combo,
+  FlashSale,
+  Popup,
+  SiteSettings,
+} from '@/features/marketing/types';
 
 const API_BASE =
   process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -64,5 +74,66 @@ export async function getReviews(slug: string): Promise<Review[]> {
     return await apiFetch<Review[]>(`/storefront/products/${slug}/reviews`);
   } catch {
     return [];
+  }
+}
+
+export function getCombos(): Promise<Combo[]> {
+  return apiFetch<Combo[]>('/storefront/combos');
+}
+
+export async function getComboBySlug(slug: string): Promise<Combo | null> {
+  try {
+    return await apiFetch<Combo>(`/storefront/combos/${slug}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function getActiveFlashSale(): Promise<FlashSale | null> {
+  try {
+    return await apiFetch<FlashSale | null>('/storefront/flash-sale');
+  } catch {
+    return null;
+  }
+}
+
+export async function getBanners(position: BannerPosition = 'HOME'): Promise<Banner[]> {
+  try {
+    return await apiFetch<Banner[]>(`/storefront/banners?position=${position}`);
+  } catch {
+    return [];
+  }
+}
+
+export function getBlogs(query: { page?: number; search?: string } = {}): Promise<BlogListResult> {
+  const params = new URLSearchParams();
+  if (query.page) params.set('page', String(query.page));
+  if (query.search) params.set('search', query.search);
+  const qs = params.toString();
+
+  return apiFetch<BlogListResult>(`/storefront/blogs${qs ? `?${qs}` : ''}`);
+}
+
+export async function getBlogBySlug(slug: string): Promise<Blog | null> {
+  try {
+    return await apiFetch<Blog>(`/storefront/blogs/${slug}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function getActivePopup(): Promise<Popup | null> {
+  try {
+    return await apiFetch<Popup | null>('/storefront/popup');
+  } catch {
+    return null;
+  }
+}
+
+export async function getSiteSettings(): Promise<SiteSettings | null> {
+  try {
+    return await apiFetch<SiteSettings>('/site-settings/public');
+  } catch {
+    return null;
   }
 }

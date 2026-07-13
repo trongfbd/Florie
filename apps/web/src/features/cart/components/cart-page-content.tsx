@@ -29,59 +29,67 @@ export function CartPageContent() {
   return (
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
-        {items.map((item) => (
-          <div
-            key={item.productId}
-            className="flex gap-4 rounded-brand border-2 border-secondary bg-white p-4"
-          >
-            <Link href={`/san-pham/${item.slug}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-secondary">
-              {item.imageUrl && (
-                <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-              )}
-            </Link>
+        {items.map((item) => {
+          const href = item.kind === "combo" ? `/combo/${item.slug}` : `/san-pham/${item.slug}`;
+          return (
+            <div
+              key={`${item.kind}-${item.id}`}
+              className="flex gap-4 rounded-brand border-2 border-secondary bg-white p-4"
+            >
+              <Link href={href} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                {item.imageUrl && (
+                  <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+                )}
+              </Link>
 
-            <div className="flex flex-1 flex-col justify-between">
-              <div className="flex items-start justify-between gap-2">
-                <Link href={`/san-pham/${item.slug}`} className="font-semibold text-heading hover:text-accent">
-                  {item.name}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => removeItem(item.productId)}
-                  aria-label="Xoá"
-                  className="text-foreground/40 transition-colors hover:text-destructive"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 rounded-full border-2 border-secondary px-1">
+              <div className="flex flex-1 flex-col justify-between">
+                <div className="flex items-start justify-between gap-2">
+                  <Link href={href} className="font-semibold text-heading hover:text-accent">
+                    {item.name}
+                    {item.kind === "combo" && (
+                      <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-semibold text-accent">
+                        Combo
+                      </span>
+                    )}
+                  </Link>
                   <button
                     type="button"
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-heading hover:bg-secondary"
-                    aria-label="Giảm số lượng"
+                    onClick={() => removeItem(item.id, item.kind)}
+                    aria-label="Xoá"
+                    className="text-foreground/40 transition-colors hover:text-destructive"
                   >
-                    <Minus size={14} />
-                  </button>
-                  <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-heading hover:bg-secondary"
-                    aria-label="Tăng số lượng"
-                  >
-                    <Plus size={14} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
-                <span className="font-bold text-accent">
-                  {formatVnd(item.unitPrice * item.quantity)}
-                </span>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 rounded-full border-2 border-secondary px-1">
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.kind, item.quantity - 1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-heading hover:bg-secondary"
+                      aria-label="Giảm số lượng"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.kind, item.quantity + 1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-heading hover:bg-secondary"
+                      aria-label="Tăng số lượng"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  <span className="font-bold text-accent">
+                    {formatVnd(item.unitPrice * item.quantity)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="h-fit space-y-4 rounded-brand border-2 border-secondary bg-secondary/40 p-6">

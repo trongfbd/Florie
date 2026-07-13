@@ -3,13 +3,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useCartStore, useCartSubtotal } from "@/stores/cart-store";
 import { useCustomerAuthStore } from "@/stores/customer-auth-store";
 import { useLastOrderStore } from "@/stores/last-order-store";
 import { formatVnd } from "@/lib/format";
-import { createStorefrontOrder } from "../api";
+import { createStorefrontOrder, validateVoucher } from "../api";
+import type { VoucherPreviewResult } from "../types";
 
 const baseSchema = z.object({
   guestName: z.string().optional(),
@@ -47,15 +49,29 @@ export function CheckoutForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+
+  const [voucherPreview, setVoucherPreview] = useState<VoucherPreviewResult | null>(null);
+  const voucherCode = watch("voucherCode");
+
+  const checkVoucher = useMutation({
+    mutationFn: () => validateVoucher({ code: (voucherCode ?? "").trim(), subtotal }),
+    onSuccess: setVoucherPreview,
+    onError: () => setVoucherPreview(null),
+  });
 
   const submitOrder = useMutation({
     mutationFn: (values: FormValues) =>
       createStorefrontOrder({
         ...values,
         paymentMethod: "COD",
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        items: items.map((item) =>
+          item.kind === "combo"
+            ? { comboId: item.id, quantity: item.quantity }
+            : { productId: item.id, quantity: item.quantity },
+        ),
       }),
     onSuccess: (order) => {
       setLastOrder(order);
@@ -191,11 +207,29 @@ export function CheckoutForm() {
 
           <div className="space-y-1 pt-2">
             <label className="text-sm font-medium text-heading">Mã giảm giá (không bắt buộc)</label>
-            <input
-              {...register("voucherCode")}
-              placeholder="VD: FLORIE10"
-              className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm uppercase outline-none focus:border-accent"
-            />
+            <div className="flex gap-2">
+              <input
+                {...register("voucherCode", { onChange: () => setVoucherPreview(null) })}
+                placeholder="VD: FLORIE10"
+                className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm uppercase outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                disabled={!voucherCode?.trim() || checkVoucher.isPending}
+                onClick={() => checkVoucher.mutate()}
+                className="shrink-0 rounded-lg border-2 border-accent px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-accent"
+              >
+                {checkVoucher.isPending ? "Đang kiểm tra..." : "Kiểm tra"}
+              </button>
+            </div>
+            {voucherPreview && (
+              <p className="text-xs font-semibold text-success">
+                ✓ Áp dụng thành công — giảm {formatVnd(voucherPreview.discountAmount)}
+              </p>
+            )}
+            {checkVoucher.isError && (
+              <p className="text-xs text-destructive">Mã giảm giá không hợp lệ hoặc đã hết hạn.</p>
+            )}
           </div>
         </fieldset>
       </div>
@@ -204,7 +238,7 @@ export function CheckoutForm() {
         <h2 className="font-display text-xl font-bold text-heading">Đơn hàng của bạn</h2>
         <ul className="space-y-1 text-sm text-foreground/70">
           {items.map((item) => (
-            <li key={item.productId} className="flex justify-between">
+            <li key={`${item.kind}-${item.id}`} className="flex justify-between">
               <span>
                 {item.name} × {item.quantity}
               </span>
@@ -219,16 +253,27 @@ export function CheckoutForm() {
             <span>Tạm tính</span>
             <span>{formatVnd(subtotal)}</span>
           </div>
+          {voucherPreview && (
+            <div className="flex justify-between text-success">
+              <span>Giảm giá</span>
+              <span>-{formatVnd(voucherPreview.discountAmount)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-foreground/70">
             <span>Phí vận chuyển</span>
             <span>{formatVnd(SHIPPING_FEE_PREVIEW)}</span>
           </div>
           <div className="mt-1 flex justify-between text-base font-bold text-heading">
             <span>Tổng cộng (tạm tính)</span>
-            <span>{formatVnd(subtotal + SHIPPING_FEE_PREVIEW)}</span>
+            <span>
+              {formatVnd(
+                (voucherPreview ? subtotal - voucherPreview.discountAmount : subtotal) +
+                  SHIPPING_FEE_PREVIEW,
+              )}
+            </span>
           </div>
           <p className="mt-1 text-xs text-foreground/50">
-            Giá cuối cùng (kèm giảm giá nếu có) sẽ hiển thị sau khi đặt hàng.
+            Giá cuối cùng sẽ được xác nhận lại khi đặt hàng.
           </p>
         </div>
 

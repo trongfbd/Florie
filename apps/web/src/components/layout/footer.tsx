@@ -27,11 +27,23 @@ export async function Footer() {
         </div>
 
         <div className="space-y-3">
-          <p className="font-semibold text-white">Hỗ trợ</p>
+          <p className="font-semibold text-white">Khám phá</p>
           <ul className="space-y-2 text-white/60">
-            <li>Chính sách giao hàng</li>
-            <li>Chính sách đổi trả</li>
-            <li>Câu hỏi thường gặp</li>
+            <li>
+              <Link href="/combo" className="transition-colors hover:text-primary">
+                Combo hoa
+              </Link>
+            </li>
+            <li>
+              <Link href="/flash-sale" className="transition-colors hover:text-primary">
+                Flash Sale
+              </Link>
+            </li>
+            <li>
+              <Link href="/blog" className="transition-colors hover:text-primary">
+                Blog
+              </Link>
+            </li>
           </ul>
         </div>
 

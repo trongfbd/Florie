@@ -1,22 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useCartStore } from "@/stores/cart-store";
+import { useCartStore, type CartItemKind } from "@/stores/cart-store";
 
 interface AddToCartButtonProps {
-  productId: string;
+  id: string;
+  kind?: CartItemKind;
   name: string;
   slug: string;
   imageUrl: string | null;
   unitPrice: number;
 }
 
-export function AddToCartButton({ productId, name, slug, imageUrl, unitPrice }: AddToCartButtonProps) {
+export function AddToCartButton({ id, kind = "product", name, slug, imageUrl, unitPrice }: AddToCartButtonProps) {
   const addItem = useCartStore((state) => state.addItem);
   const [added, setAdded] = useState(false);
 
   function handleClick() {
-    addItem({ productId, name, slug, imageUrl, unitPrice });
+    addItem({ id, kind, name, slug, imageUrl, unitPrice });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   }

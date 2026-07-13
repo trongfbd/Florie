@@ -1,6 +1,17 @@
 export interface CheckoutOrderItem {
-  productId: string;
+  productId?: string;
+  comboId?: string;
   quantity: number;
+}
+
+export interface VoucherPreviewInput {
+  code: string;
+  subtotal: number;
+}
+
+export interface VoucherPreviewResult {
+  discountAmount: number;
+  total: number;
 }
 
 export interface CheckoutInput {

@@ -1,14 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getCategories, getProducts } from "@/lib/api-server";
+import { getBanners, getCategories, getCombos, getActiveFlashSale, getProducts } from "@/lib/api-server";
 import { CategoryCard } from "@/features/storefront/components/category-card";
 import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { ComboGrid } from "@/features/marketing/components/combo-grid";
+import { FlashSaleSection } from "@/features/marketing/components/flash-sale-section";
 import { FadeIn } from "@/components/motion/fade-in";
 import { Container } from "@/components/layout/container";
 
-// Hero photo is hardcoded until the Marketing sprint adds real Banner
-// management (Banner model already exists in the schema, no CRUD API yet).
-const HERO_IMAGE_URL =
+// Fallback hero photo, used only until an admin creates a real HOME banner.
+const FALLBACK_HERO_IMAGE_URL =
   "http://localhost:9000/florie-media/banners/8a2a5d60-4db7-4210-94f8-03d335c228cb.jpg";
 
 const TRUST_BADGES = [
@@ -19,16 +20,23 @@ const TRUST_BADGES = [
 ];
 
 export default async function Home() {
-  const [categories, featured] = await Promise.all([
+  const [categories, featured, banners, flashSale, combos] = await Promise.all([
     getCategories(),
     getProducts({ sort: "newest", limit: 10 }),
+    getBanners("HOME"),
+    getActiveFlashSale(),
+    getCombos(),
   ]);
+
+  const hero = banners[0];
+  const heroImageUrl = hero?.imageUrl ?? FALLBACK_HERO_IMAGE_URL;
+  const heroLink = hero?.linkUrl ?? "/danh-muc/hoa-sinh-nhat";
 
   return (
     <div className="space-y-24 pb-24">
       <section className="relative flex min-h-[620px] items-center overflow-hidden">
         <Image
-          src={HERO_IMAGE_URL}
+          src={heroImageUrl}
           alt=""
           fill
           priority
@@ -53,7 +61,7 @@ export default async function Home() {
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Link
-                href="/danh-muc/hoa-sinh-nhat"
+                href={heroLink}
                 className="rounded-full bg-accent px-8 py-3.5 text-sm font-bold text-white shadow-xl shadow-accent/40 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-accent/50"
               >
                 Khám phá ngay
@@ -81,6 +89,12 @@ export default async function Home() {
       </section>
 
       <Container className="space-y-24">
+        {flashSale && flashSale.items.length > 0 && (
+          <FadeIn as="section">
+            <FlashSaleSection flashSale={flashSale} />
+          </FadeIn>
+        )}
+
         {categories.length > 0 && (
           <FadeIn as="section" className="space-y-8">
             <div className="text-center">
@@ -92,6 +106,21 @@ export default async function Home() {
                 <CategoryCard key={category.id} category={category} />
               ))}
             </div>
+          </FadeIn>
+        )}
+
+        {combos.length > 0 && (
+          <FadeIn as="section" delay={0.1} className="space-y-8">
+            <div className="flex items-end justify-between">
+              <div>
+                <h2 className="font-display text-4xl font-bold text-heading">Combo nổi bật</h2>
+                <p className="mt-2 text-foreground/70">Phối sẵn theo chủ đề, giá tốt hơn mua lẻ</p>
+              </div>
+              <Link href="/combo" className="hidden text-sm font-bold text-accent hover:underline sm:inline">
+                Xem tất cả →
+              </Link>
+            </div>
+            <ComboGrid combos={combos.slice(0, 5)} />
           </FadeIn>
         )}
 
