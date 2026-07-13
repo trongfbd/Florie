@@ -1,20 +1,8 @@
 "use client";
 
 import { formatVnd } from "@/lib/format";
+import { EXPENSE_CATEGORY_LABELS } from "@/lib/expense-category-labels";
 import { useExpensesByCategory } from "../hooks";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  FACEBOOK_ADS: "Facebook Ads",
-  TIKTOK_ADS: "TikTok Ads",
-  GOOGLE_ADS: "Google Ads",
-  STOCK_PURCHASE: "Nhập hàng",
-  ELECTRICITY: "Điện",
-  WATER: "Nước",
-  INTERNET: "Internet",
-  SHIPPING: "Vận chuyển",
-  SALARY: "Lương",
-  OTHER: "Khác",
-};
 
 export function ExpenseBreakdown() {
   const { data, isLoading } = useExpensesByCategory();
@@ -38,7 +26,7 @@ export function ExpenseBreakdown() {
       {data.byCategory.map((row) => (
         <div key={row.category} className="space-y-1">
           <div className="flex justify-between text-sm">
-            <span className="font-medium text-heading">{CATEGORY_LABELS[row.category] ?? row.category}</span>
+            <span className="font-medium text-heading">{EXPENSE_CATEGORY_LABELS[row.category] ?? row.category}</span>
             <span className="text-foreground/60">{formatVnd(row.total)}</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-secondary">

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { formatVnd } from "@/lib/format";
+import { getErrorMessage } from "@/lib/get-error-message";
 import { useDeleteProduct, useProducts } from "../hooks";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -31,12 +32,7 @@ export function ProductsTable() {
   function handleDelete(id: string, name: string) {
     if (!confirm(`Xoá sản phẩm "${name}"?`)) return;
     deleteMutation.mutate(id, {
-      onError: (error) => {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Không thể xoá sản phẩm.";
-        alert(message);
-      },
+      onError: (error) => alert(getErrorMessage(error, "Không thể xoá sản phẩm.")),
     });
   }
 

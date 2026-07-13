@@ -1,7 +1,9 @@
 import { adminApiClient } from "@/lib/admin-api-client";
 import type { PaginatedProducts, ProductDetail, ProductFormInput } from "./types";
 
-export async function fetchProducts(query: { page?: number; search?: string }): Promise<PaginatedProducts> {
+export async function fetchProducts(
+  query: { page?: number; search?: string; limit?: number },
+): Promise<PaginatedProducts> {
   const { data } = await adminApiClient.get<PaginatedProducts>("/api/v1/products", { params: query });
   return data;
 }

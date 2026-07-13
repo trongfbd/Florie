@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getErrorMessage } from "@/lib/get-error-message";
 import { useCategories, useDeleteCategory } from "../hooks";
 
 export function CategoriesTable() {
@@ -10,12 +11,7 @@ export function CategoriesTable() {
   function handleDelete(id: string, name: string) {
     if (!confirm(`Xoá danh mục "${name}"?`)) return;
     deleteMutation.mutate(id, {
-      onError: (error) => {
-        const message =
-          (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Không thể xoá danh mục.";
-        alert(message);
-      },
+      onError: (error) => alert(getErrorMessage(error, "Không thể xoá danh mục.")),
     });
   }
 

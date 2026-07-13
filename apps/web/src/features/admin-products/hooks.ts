@@ -4,12 +4,20 @@ import type { ProductFormInput } from "./types";
 
 const KEY = ["admin-products"];
 
-export function useProducts(query: { page?: number; search?: string }) {
+export function useProducts(query: { page?: number; search?: string; limit?: number }) {
   return useQuery({ queryKey: [...KEY, query], queryFn: () => fetchProducts(query) });
 }
 
 export function useProduct(id: string) {
   return useQuery({ queryKey: [...KEY, id], queryFn: () => fetchProduct(id), enabled: !!id });
+}
+
+/** For pickers (combo/flash-sale item selection) — a flat list, not paginated UI. */
+export function useProductOptions() {
+  return useQuery({
+    queryKey: [...KEY, "options"],
+    queryFn: () => fetchProducts({ page: 1, limit: 100 }),
+  });
 }
 
 export function useCreateProduct() {
