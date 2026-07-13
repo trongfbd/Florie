@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Heart, ShoppingBag } from "lucide-react";
 import { getCategories } from "@/lib/api-server";
 import { SearchBox } from "./search-box";
 import { Container } from "./container";
+import { HeaderActions } from "./header-actions";
 
 export async function Header() {
   const categories = await getCategories().catch(() => []);
@@ -30,24 +30,7 @@ export async function Header() {
 
         <div className="flex items-center gap-3">
           <SearchBox />
-          <button
-            type="button"
-            disabled
-            title="Sẽ có ở bước tiếp theo"
-            aria-label="Yêu thích"
-            className="rounded-full p-2.5 text-heading/60 transition-colors hover:bg-primary hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Heart size={18} />
-          </button>
-          <button
-            type="button"
-            disabled
-            title="Sẽ có ở bước tiếp theo"
-            aria-label="Giỏ hàng"
-            className="rounded-full p-2.5 text-heading/60 transition-colors hover:bg-primary hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <ShoppingBag size={18} />
-          </button>
+          <HeaderActions />
         </div>
       </Container>
     </header>

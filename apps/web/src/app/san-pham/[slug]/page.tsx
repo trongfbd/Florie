@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts } from "@/lib/api-server";
+import { getProductBySlug, getRelatedProducts, getReviews } from "@/lib/api-server";
 import { ProductGallery } from "@/features/storefront/components/product-gallery";
 import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
+import { ReviewsSection } from "@/features/reviews/components/reviews-section";
 import { Container } from "@/components/layout/container";
 import { formatVnd } from "@/lib/format";
 
@@ -32,7 +35,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const related = await getRelatedProducts(slug);
+  const [related, reviews] = await Promise.all([getRelatedProducts(slug), getReviews(slug)]);
   const hasDiscount = product.salePrice !== null && product.salePrice < product.basePrice;
 
   return (
@@ -67,14 +70,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </p>
           )}
 
-          <button
-            type="button"
-            disabled
-            title="Giỏ hàng sẽ có ở bước tiếp theo"
-            className="w-full rounded-full bg-accent px-6 py-3.5 text-sm font-bold text-white opacity-60 shadow-lg shadow-accent/30 transition-transform disabled:cursor-not-allowed sm:w-auto sm:px-12"
-          >
-            Thêm vào giỏ hàng
-          </button>
+          <div className="flex gap-3">
+            <AddToCartButton
+              productId={product.id}
+              name={product.name}
+              slug={product.slug}
+              imageUrl={product.images[0]?.url ?? null}
+              unitPrice={product.salePrice ?? product.basePrice}
+            />
+            <WishlistButton productId={product.id} />
+          </div>
         </div>
       </div>
 
@@ -84,6 +89,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <ProductGrid products={related} />
         </section>
       )}
+
+      <ReviewsSection productSlug={slug} initialReviews={reviews} />
     </Container>
   );
 }

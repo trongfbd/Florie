@@ -6,6 +6,7 @@ import type {
   ProductListItem,
   StorefrontProductQuery,
 } from '@/features/storefront/types';
+import type { Review } from '@/features/reviews/types';
 
 const API_BASE =
   process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -56,4 +57,12 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
 
 export function getRelatedProducts(slug: string): Promise<ProductListItem[]> {
   return apiFetch<ProductListItem[]>(`/storefront/products/${slug}/related`);
+}
+
+export async function getReviews(slug: string): Promise<Review[]> {
+  try {
+    return await apiFetch<Review[]>(`/storefront/products/${slug}/reviews`);
+  } catch {
+    return [];
+  }
 }
