@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCustomerAuthStore } from "@/stores/customer-auth-store";
-import { loginCustomer, logoutCustomer, registerCustomer } from "./api";
+import { loginCustomer, loginWithGoogle, logoutCustomer, registerCustomer } from "./api";
 
 export function useRegisterCustomer() {
   const setSession = useCustomerAuthStore((state) => state.setSession);
@@ -16,6 +16,15 @@ export function useLoginCustomer() {
 
   return useMutation({
     mutationFn: loginCustomer,
+    onSuccess: (data) => setSession(data.accessToken, data.customer),
+  });
+}
+
+export function useLoginWithGoogle() {
+  const setSession = useCustomerAuthStore((state) => state.setSession);
+
+  return useMutation({
+    mutationFn: loginWithGoogle,
     onSuccess: (data) => setSession(data.accessToken, data.customer),
   });
 }

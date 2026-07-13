@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useLoginCustomer } from "../hooks";
+import { GoogleLoginButton } from "./google-login-button";
 
 const schema = z.object({
   phone: z.string().min(9, "Số điện thoại không hợp lệ"),
@@ -25,12 +26,12 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
+  function goToRedirect() {
+    router.push(searchParams.get("redirect") ?? "/tai-khoan");
+  }
+
   function onSubmit(values: FormValues) {
-    loginMutation.mutate(values, {
-      onSuccess: () => {
-        router.push(searchParams.get("redirect") ?? "/tai-khoan");
-      },
-    });
+    loginMutation.mutate(values, { onSuccess: goToRedirect });
   }
 
   return (
@@ -72,6 +73,8 @@ export function LoginForm() {
       >
         {loginMutation.isPending ? "Đang đăng nhập..." : "Đăng nhập"}
       </button>
+
+      <GoogleLoginButton onSuccess={goToRedirect} />
 
       <p className="text-center text-sm text-foreground/70">
         Chưa có tài khoản?{" "}

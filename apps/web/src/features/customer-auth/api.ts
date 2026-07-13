@@ -20,3 +20,10 @@ export async function loginCustomer(input: LoginCustomerInput): Promise<Customer
 export async function logoutCustomer(): Promise<void> {
   await customerApiClient.post("/api/v1/customer-auth/logout");
 }
+
+export async function loginWithGoogle(idToken: string): Promise<CustomerAuthResponse> {
+  const { data } = await customerApiClient.post<CustomerAuthResponse>("/api/v1/customer-auth/google", {
+    idToken,
+  });
+  return data;
+}

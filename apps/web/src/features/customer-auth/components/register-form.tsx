@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRegisterCustomer } from "../hooks";
+import { GoogleLoginButton } from "./google-login-button";
 
 const schema = z.object({
   name: z.string().min(2, "Vui lòng nhập họ tên"),
@@ -100,6 +101,8 @@ export function RegisterForm() {
       >
         {registerMutation.isPending ? "Đang đăng ký..." : "Đăng ký"}
       </button>
+
+      <GoogleLoginButton onSuccess={() => router.push("/tai-khoan")} />
 
       <p className="text-center text-sm text-foreground/70">
         Đã có tài khoản?{" "}

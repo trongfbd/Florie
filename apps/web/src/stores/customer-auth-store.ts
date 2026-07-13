@@ -3,8 +3,9 @@ import { create } from "zustand";
 export interface CustomerProfile {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   email: string | null;
+  avatarUrl: string | null;
 }
 
 interface CustomerAuthState {

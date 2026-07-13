@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         pathname: "/florie-media/**",
         search: "",
       },
+      {
+        // Google account profile pictures (Google Sign-In)
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
     ],
     // Next.js blocks the image optimizer from fetching private/loopback IPs
     // (SSRF protection) — that includes our own dev MinIO on "localhost".

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -35,10 +36,25 @@ export function AccountPageContent() {
   return (
     <div className="space-y-10">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-brand border-2 border-secondary bg-white p-6">
-        <div>
-          <p className="font-display text-xl font-bold text-heading">{customer.name}</p>
-          <p className="text-sm text-foreground/60">{customer.phone}</p>
-          {customer.email && <p className="text-sm text-foreground/60">{customer.email}</p>}
+        <div className="flex items-center gap-4">
+          {customer.avatarUrl ? (
+            <Image
+              src={customer.avatarUrl}
+              alt={customer.name}
+              width={56}
+              height={56}
+              className="rounded-full border-2 border-secondary"
+            />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary font-display text-xl font-bold text-accent">
+              {customer.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <p className="font-display text-xl font-bold text-heading">{customer.name}</p>
+            {customer.phone && <p className="text-sm text-foreground/60">{customer.phone}</p>}
+            {customer.email && <p className="text-sm text-foreground/60">{customer.email}</p>}
+          </div>
         </div>
         <div className="flex gap-3">
           <Link
