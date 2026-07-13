@@ -7,6 +7,7 @@ export interface CustomerListItem {
   totalSpent: number;
   isVip: boolean;
   createdAt: string;
+  _count: { voucherClaims: number };
 }
 
 export interface CustomerAddress {
@@ -35,10 +36,25 @@ export interface CustomerOrderRow {
   createdAt: string;
 }
 
-export interface CustomerDetail extends CustomerListItem {
+export interface CustomerVoucherClaim {
+  id: string;
+  claimedAt: string;
+  used: boolean;
+  voucher: {
+    id: string;
+    code: string;
+    discountType: "PERCENTAGE" | "FIXED_AMOUNT";
+    discountValue: number;
+    endAt: string;
+  };
+}
+
+export interface CustomerDetail
+  extends Omit<CustomerListItem, "_count"> {
   addresses: CustomerAddress[];
   notes: CustomerNote[];
   orders: CustomerOrderRow[];
+  voucherClaims: CustomerVoucherClaim[];
   _count: { orders: number };
 }
 

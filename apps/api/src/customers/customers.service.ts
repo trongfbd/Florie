@@ -16,13 +16,23 @@ const CUSTOMER_DETAIL_INCLUDE = {
     orderBy: { createdAt: 'desc' },
     take: 10,
   },
+  voucherClaims: {
+    include: {
+      voucher: { select: { id: true, code: true, discountType: true, discountValue: true, endAt: true } },
+    },
+    orderBy: { claimedAt: 'desc' },
+  },
   _count: { select: { orders: true } },
 } satisfies Prisma.CustomerInclude;
 
-type CustomerDetail = Prisma.CustomerGetPayload<{
+type CustomerDetailRaw = Prisma.CustomerGetPayload<{
   include: typeof CUSTOMER_DETAIL_INCLUDE;
   omit: { passwordHash: true };
 }>;
+
+export type CustomerDetail = Omit<CustomerDetailRaw, 'voucherClaims'> & {
+  voucherClaims: (CustomerDetailRaw['voucherClaims'][number] & { used: boolean })[];
+};
 
 @Injectable()
 export class CustomersService {
@@ -36,7 +46,9 @@ export class CustomersService {
     return this.prisma.customer.findUnique({ where: { id } });
   }
 
-  async findAll(query: QueryCustomerDto): Promise<PaginatedResult<Omit<Customer, 'passwordHash'>>> {
+  async findAll(
+    query: QueryCustomerDto,
+  ): Promise<PaginatedResult<Omit<Customer, 'passwordHash'> & { _count: { voucherClaims: number } }>> {
     const where: Prisma.CustomerWhereInput = {
       ...(query.isVip !== undefined && { isVip: query.isVip }),
       ...(query.search && {
@@ -52,6 +64,7 @@ export class CustomersService {
       this.prisma.customer.findMany({
         where,
         omit: { passwordHash: true },
+        include: { _count: { select: { voucherClaims: true } } },
         orderBy: { [query.sortBy]: query.sortOrder },
         skip: query.skip,
         take: query.take,
@@ -71,7 +84,23 @@ export class CustomersService {
     if (!customer) {
       throw new NotFoundException('Không tìm thấy khách hàng');
     }
-    return customer;
+
+    // "Used" checks the customer's full order history, not just the last-10
+    // `orders` slice above — a voucher claimed long ago could've been used on
+    // an older order that's since scrolled out of that preview list.
+    const ordersWithVoucher = await this.prisma.order.findMany({
+      where: { customerId: id, voucherId: { not: null } },
+      select: { voucherId: true },
+    });
+    const usedVoucherIds = new Set(ordersWithVoucher.map((order) => order.voucherId as string));
+
+    return {
+      ...customer,
+      voucherClaims: customer.voucherClaims.map((claim) => ({
+        ...claim,
+        used: usedVoucherIds.has(claim.voucherId),
+      })),
+    };
   }
 
   async setVip(id: string, isVip: boolean): Promise<Omit<Customer, 'passwordHash'>> {

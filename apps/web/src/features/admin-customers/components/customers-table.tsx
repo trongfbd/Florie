@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Ticket } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import { useCustomers } from "../hooks";
 
@@ -58,18 +59,19 @@ export function CustomersTable() {
               <th className="px-4 py-3">Khách hàng</th>
               <th className="px-4 py-3">SĐT / Email</th>
               <th className="px-4 py-3">Tổng chi tiêu</th>
+              <th className="px-4 py-3">Voucher</th>
               <th className="px-4 py-3">VIP</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-secondary">
             {isLoading && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-foreground/50">Đang tải...</td>
+                <td colSpan={5} className="px-4 py-8 text-center text-foreground/50">Đang tải...</td>
               </tr>
             )}
             {!isLoading && data?.data.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-foreground/50">Không tìm thấy khách hàng nào.</td>
+                <td colSpan={5} className="px-4 py-8 text-center text-foreground/50">Không tìm thấy khách hàng nào.</td>
               </tr>
             )}
             {data?.data.map((customer) => (
@@ -81,6 +83,14 @@ export function CustomersTable() {
                 </td>
                 <td className="px-4 py-3 text-foreground/60">{customer.phone ?? customer.email ?? "—"}</td>
                 <td className="px-4 py-3 font-semibold text-heading">{formatVnd(customer.totalSpent)}</td>
+                <td className="px-4 py-3">
+                  {customer._count.voucherClaims > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">
+                      <Ticket size={12} />
+                      {customer._count.voucherClaims}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {customer.isVip && (
                     <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">VIP</span>

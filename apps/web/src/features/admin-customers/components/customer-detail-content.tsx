@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Ticket } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { useAddCustomerNote, useCustomer, useRemoveCustomerNote, useSetCustomerVip } from "../hooks";
@@ -91,6 +92,46 @@ export function CustomerDetailContent({ customerId }: { customerId: string }) {
                       .filter(Boolean)
                       .join(", ")}
                   </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="space-y-3 rounded-brand border-2 border-secondary bg-white p-5 lg:col-span-2">
+          <h2 className="font-display text-lg font-bold text-heading">Voucher đã nhận</h2>
+          {customer.voucherClaims.length === 0 ? (
+            <p className="text-sm text-foreground/50">Khách chưa nhận voucher nào.</p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {customer.voucherClaims.map((claim) => (
+                <li
+                  key={claim.id}
+                  className="flex items-center gap-3 rounded-lg border-2 border-dashed border-secondary p-3"
+                >
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                      claim.used ? "bg-secondary text-foreground/40" : "bg-accent/15 text-accent"
+                    }`}
+                  >
+                    <Ticket size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-sm font-bold text-heading">{claim.voucher.code}</p>
+                    <p className="text-xs text-foreground/60">
+                      {claim.voucher.discountType === "PERCENTAGE"
+                        ? `Giảm ${claim.voucher.discountValue}%`
+                        : `Giảm ${formatVnd(claim.voucher.discountValue)}`}{" "}
+                      · Nhận {formatDate(claim.claimedAt)}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      claim.used ? "bg-secondary text-foreground/60" : "bg-success/15 text-success"
+                    }`}
+                  >
+                    {claim.used ? "Đã dùng" : "Chưa dùng"}
+                  </span>
                 </li>
               ))}
             </ul>
