@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getCategoryBySlug, getProducts } from "@/lib/api-server";
 import { FilterBar } from "@/features/storefront/components/filter-bar";
 import { ProductGrid } from "@/features/storefront/components/product-grid";
 import { Pagination } from "@/features/storefront/components/pagination";
+import { Container } from "@/components/layout/container";
 import type { StorefrontProductQuery } from "@/features/storefront/types";
 
 interface CategoryPageProps {
@@ -41,28 +43,38 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     maxPrice: sp.maxPrice ? Number(sp.maxPrice) : undefined,
     sort: (sp.sort as StorefrontProductQuery["sort"]) ?? "newest",
     page,
-    limit: 12,
+    limit: 15,
   });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-10">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">{category.name}</h1>
-        {category.description && (
-          <p className="mt-2 max-w-2xl text-foreground/70">{category.description}</p>
+    <div className="pb-24">
+      <section className="relative flex h-64 items-end overflow-hidden sm:h-80">
+        {category.imageUrl ? (
+          <Image src={category.imageUrl} alt="" fill sizes="100vw" className="object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary" />
         )}
-      </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
+        <Container className="relative z-10 pb-8">
+          <h1 className="font-display text-4xl font-bold text-white drop-shadow sm:text-5xl">
+            {category.name}
+          </h1>
+          {category.description && (
+            <p className="mt-2 max-w-xl text-white/85">{category.description}</p>
+          )}
+        </Container>
+      </section>
 
-      <FilterBar />
-
-      <ProductGrid products={products.data} />
-
-      <Pagination
-        basePath={`/danh-muc/${slug}`}
-        searchParams={sp}
-        page={products.meta.page}
-        totalPages={products.meta.totalPages}
-      />
+      <Container className="mt-8 space-y-6">
+        <FilterBar />
+        <ProductGrid products={products.data} />
+        <Pagination
+          basePath={`/danh-muc/${slug}`}
+          searchParams={sp}
+          page={products.meta.page}
+          totalPages={products.meta.totalPages}
+        />
+      </Container>
     </div>
   );
 }

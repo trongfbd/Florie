@@ -10,6 +10,7 @@
   /* Florie brand palette mapped onto shadcn's semantic slots */
   --background: #ffffff;
   --foreground: #444444;
+  --heading: #2b1d22;
 
   --card: #ffffff;
   --card-foreground: #444444;
@@ -57,6 +58,7 @@
 .dark {
   --background: #2a2226;
   --foreground: #f5e9ec;
+  --heading: #ffffff;
 
   --card: #352c30;
   --card-foreground: #f5e9ec;
@@ -104,6 +106,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-heading: var(--heading);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -157,6 +160,19 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans scroll-smooth;
   }
+}
+
+@keyframes hero-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.animate-hero-zoom {
+  animation: hero-zoom 16s ease-out forwards;
 }

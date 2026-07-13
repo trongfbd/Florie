@@ -22,7 +22,7 @@ export function SearchBox() {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Tìm hoa..."
-        className="w-full rounded-full border border-primary/60 bg-white px-4 py-2 pr-10 text-sm outline-none focus:border-accent"
+        className="w-full rounded-full border-2 border-secondary bg-secondary/60 px-4 py-2 pr-10 text-sm text-heading outline-none transition-colors focus:border-accent focus:bg-white"
       />
       <button
         type="submit"

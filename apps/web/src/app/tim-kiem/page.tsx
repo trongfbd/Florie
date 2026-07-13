@@ -3,6 +3,7 @@ import { getProducts } from "@/lib/api-server";
 import { FilterBar } from "@/features/storefront/components/filter-bar";
 import { ProductGrid } from "@/features/storefront/components/product-grid";
 import { Pagination } from "@/features/storefront/components/pagination";
+import { Container } from "@/components/layout/container";
 import type { StorefrontProductQuery } from "@/features/storefront/types";
 
 interface SearchPageProps {
@@ -33,9 +34,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     : await getProducts({ sort: "newest", page, limit: 12 });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-10">
+    <Container className="space-y-6 py-12">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">
+        <h1 className="font-display text-4xl font-bold text-heading">
           {query ? `Kết quả cho "${query}"` : "Tất cả sản phẩm"}
         </h1>
         <p className="mt-1 text-sm text-foreground/60">{products.meta.total} sản phẩm</p>
@@ -51,6 +52,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         page={products.meta.page}
         totalPages={products.meta.totalPages}
       />
-    </div>
+    </Container>
   );
 }

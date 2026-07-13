@@ -30,7 +30,7 @@ export function FilterBar() {
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-4 rounded-brand border border-primary/60 bg-secondary/40 p-4">
+    <div className="flex flex-wrap items-end gap-4 rounded-brand border-2 border-secondary bg-secondary/50 p-4">
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-foreground/70" htmlFor="minPrice">
           Giá từ
@@ -43,7 +43,7 @@ export function FilterBar() {
           onChange={(e) => setMinPrice(e.target.value)}
           onBlur={() => applyParams({ minPrice: minPrice || undefined })}
           placeholder="0"
-          className="w-28 rounded-lg border border-primary/60 bg-white px-3 py-1.5 text-sm outline-none focus:border-accent"
+          className="w-28 rounded-lg border-2 border-secondary bg-white px-3 py-1.5 text-sm font-medium text-heading outline-none transition-colors focus:border-accent"
         />
       </div>
 
@@ -59,7 +59,7 @@ export function FilterBar() {
           onChange={(e) => setMaxPrice(e.target.value)}
           onBlur={() => applyParams({ maxPrice: maxPrice || undefined })}
           placeholder="Không giới hạn"
-          className="w-32 rounded-lg border border-primary/60 bg-white px-3 py-1.5 text-sm outline-none focus:border-accent"
+          className="w-32 rounded-lg border-2 border-secondary bg-white px-3 py-1.5 text-sm font-medium text-heading outline-none transition-colors focus:border-accent"
         />
       </div>
 
@@ -71,7 +71,7 @@ export function FilterBar() {
           id="sort"
           value={sort}
           onChange={(e) => applyParams({ sort: e.target.value })}
-          className="rounded-lg border border-primary/60 bg-white px-3 py-1.5 text-sm outline-none focus:border-accent"
+          className="rounded-lg border-2 border-secondary bg-white px-3 py-1.5 text-sm font-medium text-heading outline-none transition-colors focus:border-accent"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
