@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginatedResult, PaginatedResult } from '../common/dto/paginated-result.dto';
 import { computeVoucherDiscount } from '../common/utils/voucher-discount.util';
 import { InventoryService } from '../inventory/inventory.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -63,6 +64,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryService: InventoryService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(dto: CreateOrderDto, actorUserId?: string): Promise<OrderDetail> {
@@ -136,6 +138,13 @@ export class OrdersService {
 
       return order;
     });
+
+    await this.notificationsService.create(
+      'NEW_ORDER',
+      'Đơn hàng mới',
+      `Đơn hàng ${created.orderNumber} vừa được tạo, tổng tiền ${total.toLocaleString('vi-VN')}đ`,
+      created.id,
+    );
 
     return this.findOne(created.id);
   }

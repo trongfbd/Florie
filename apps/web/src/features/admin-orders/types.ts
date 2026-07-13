@@ -49,8 +49,13 @@ export interface OrderDetail extends OrderListItem {
 
 export interface QueryOrdersInput {
   page?: number;
+  limit?: number;
   search?: string;
   status?: OrderStatus;
+  deliveryDateFrom?: string;
+  deliveryDateTo?: string;
+  sortBy?: "createdAt" | "deliveryDate" | "total";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedOrders {

@@ -7,6 +7,7 @@ import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomersService } from '../customers/customers.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CustomerJwtPayload } from './types/customer-jwt-payload.type';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { CustomerAuthResponseDto } from './dto/customer-auth-response.dto';
@@ -31,6 +32,7 @@ export class CustomerAuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.googleClient = new OAuth2Client(this.configService.get<string>('GOOGLE_CLIENT_ID'));
   }
@@ -45,6 +47,13 @@ export class CustomerAuthService {
     const customer = await this.prisma.customer.create({
       data: { name: dto.name, phone: dto.phone, email: dto.email, passwordHash },
     });
+
+    await this.notificationsService.create(
+      'NEW_CUSTOMER',
+      'Khách hàng mới',
+      `${customer.name} vừa đăng ký tài khoản (${customer.phone})`,
+      customer.id,
+    );
 
     return this.buildAuthResult(customer);
   }
@@ -114,6 +123,13 @@ export class CustomerAuthService {
           avatarUrl: picture,
         },
       });
+
+      await this.notificationsService.create(
+        'NEW_CUSTOMER',
+        'Khách hàng mới',
+        `${customer.name} vừa đăng ký tài khoản qua Google (${customer.email})`,
+        customer.id,
+      );
     }
 
     return this.buildAuthResult(customer);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Package,
@@ -17,14 +18,26 @@ import {
   Users,
   Wallet,
   Sparkles,
+  CalendarDays,
+  DatabaseBackup,
 } from "lucide-react";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
 
-const NAV_GROUPS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  adminOnly?: boolean;
+}
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Chính",
     items: [
       { href: "/admin", label: "Tổng quan", icon: LayoutDashboard, exact: true },
       { href: "/admin/don-hang", label: "Đơn hàng", icon: ShoppingBag },
+      { href: "/admin/lich-giao-hang", label: "Lịch giao hàng", icon: CalendarDays },
       { href: "/admin/san-pham", label: "Sản phẩm", icon: Package },
       { href: "/admin/danh-muc", label: "Danh mục", icon: Tags },
     ],
@@ -52,10 +65,15 @@ const NAV_GROUPS = [
     label: "Trợ lý AI",
     items: [{ href: "/admin/tro-ly-ban-hang", label: "Trợ lý bán hàng", icon: Sparkles }],
   },
+  {
+    label: "Hệ thống",
+    items: [{ href: "/admin/sao-luu", label: "Sao lưu & Khôi phục", icon: DatabaseBackup, adminOnly: true }],
+  },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const role = useAdminAuthStore((state) => state.admin?.role);
 
   return (
     <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-secondary bg-white sm:flex sm:flex-col">
@@ -68,7 +86,9 @@ export function AdminSidebar() {
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="space-y-1">
             <p className="px-3 text-xs font-bold uppercase tracking-wide text-foreground/40">{group.label}</p>
-            {group.items.map((item) => {
+            {group.items
+              .filter((item) => !item.adminOnly || role === "ADMIN")
+              .map((item) => {
               const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
               const Icon = item.icon;
               return (

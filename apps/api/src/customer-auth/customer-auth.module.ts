@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { CustomersModule } from '../customers/customers.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { CustomerAuthController } from './customer-auth.controller';
 import { CustomerAuthService } from './customer-auth.service';
 import { CustomerJwtStrategy } from './strategies/customer-jwt.strategy';
@@ -12,6 +13,7 @@ import { CustomerJwtAuthGuard } from './guards/customer-jwt-auth.guard';
 @Module({
   imports: [
     CustomersModule,
+    NotificationsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
