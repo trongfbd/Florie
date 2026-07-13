@@ -15,6 +15,11 @@ import { MaterialsModule } from './materials/materials.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { OrdersModule } from './orders/orders.module';
 import { StorefrontModule } from './storefront/storefront.module';
+import { CustomersModule } from './customers/customers.module';
+import { CustomerAuthModule } from './customer-auth/customer-auth.module';
+import { StorefrontOrdersModule } from './storefront-orders/storefront-orders.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -35,6 +40,11 @@ import { RolesGuard } from './auth/guards/roles.guard';
     InventoryModule,
     OrdersModule,
     StorefrontModule,
+    CustomersModule,
+    CustomerAuthModule,
+    StorefrontOrdersModule,
+    WishlistModule,
+    ReviewsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

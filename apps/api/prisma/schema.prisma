@@ -164,8 +164,23 @@ model Customer {
   orders        Order[]
   wishlistItems WishlistItem[]
   reviews       ProductReview[]
+  refreshTokens CustomerRefreshToken[]
 
   @@index([isVip])
+}
+
+// Kept separate from RefreshToken (Admin/Staff) on purpose: customer and
+// staff identities must never share a token store or secret.
+model CustomerRefreshToken {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([customerId])
 }
 
 model CustomerAddress {

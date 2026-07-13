@@ -60,7 +60,7 @@ export class OrdersService {
     private readonly inventoryService: InventoryService,
   ) {}
 
-  async create(dto: CreateOrderDto, actorUserId: string): Promise<OrderDetail> {
+  async create(dto: CreateOrderDto, actorUserId?: string): Promise<OrderDetail> {
     if (!dto.customerId && !(dto.guestName && dto.guestPhone)) {
       throw new BadRequestException(
         'Cần chọn khách hàng có sẵn (customerId) hoặc nhập tên và SĐT khách vãng lai (guestName/guestPhone)',
@@ -107,7 +107,13 @@ export class OrdersService {
           createdById: actorUserId,
           items: { create: items },
           statusHistory: {
-            create: [{ toStatus: OrderStatus.NEW, changedById: actorUserId, note: 'Tạo đơn hàng' }],
+            create: [
+              {
+                toStatus: OrderStatus.NEW,
+                changedById: actorUserId,
+                note: actorUserId ? 'Tạo đơn hàng' : 'Khách đặt hàng qua website',
+              },
+            ],
           },
         },
       });
