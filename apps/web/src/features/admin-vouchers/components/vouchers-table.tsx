@@ -30,6 +30,7 @@ export function VouchersTable() {
               <th className="px-4 py-3">Giảm giá</th>
               <th className="px-4 py-3">Hiệu lực</th>
               <th className="px-4 py-3">Đã dùng</th>
+              <th className="px-4 py-3">Đã claim</th>
               <th className="px-4 py-3">Trạng thái</th>
               <th className="px-4 py-3 text-right">Thao tác</th>
             </tr>
@@ -37,12 +38,12 @@ export function VouchersTable() {
           <tbody className="divide-y divide-secondary">
             {isLoading && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-foreground/50">Đang tải...</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-foreground/50">Đang tải...</td>
               </tr>
             )}
             {!isLoading && data?.data.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-foreground/50">Chưa có voucher nào.</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-foreground/50">Chưa có voucher nào.</td>
               </tr>
             )}
             {data?.data.map((voucher) => (
@@ -58,6 +59,7 @@ export function VouchersTable() {
                   {voucher.usedCount}
                   {voucher.usageLimit ? `/${voucher.usageLimit}` : ""}
                 </td>
+                <td className="px-4 py-3 text-foreground/60">{voucher._count.claims}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${

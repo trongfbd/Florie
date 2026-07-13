@@ -8,6 +8,12 @@ import { UpdateVoucherDto } from './dto/update-voucher.dto';
 import { QueryVoucherDto } from './dto/query-voucher.dto';
 import { ValidateVoucherDto } from './dto/validate-voucher.dto';
 
+const VOUCHER_INCLUDE = {
+  _count: { select: { claims: true } },
+} satisfies Prisma.VoucherInclude;
+
+type VoucherWithClaimCount = Prisma.VoucherGetPayload<{ include: typeof VOUCHER_INCLUDE }>;
+
 @Injectable()
 export class VouchersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,7 +29,7 @@ export class VouchersService {
     });
   }
 
-  async findAll(query: QueryVoucherDto): Promise<PaginatedResult<Voucher>> {
+  async findAll(query: QueryVoucherDto): Promise<PaginatedResult<VoucherWithClaimCount>> {
     const where: Prisma.VoucherWhereInput = {
       ...(query.search && { code: { contains: query.search, mode: 'insensitive' } }),
       ...(query.isActive !== undefined && { isActive: query.isActive }),
@@ -32,6 +38,7 @@ export class VouchersService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.voucher.findMany({
         where,
+        include: VOUCHER_INCLUDE,
         orderBy: { [query.sortBy]: query.sortOrder },
         skip: query.skip,
         take: query.take,
@@ -42,8 +49,8 @@ export class VouchersService {
     return buildPaginatedResult(data, total, query.page, query.limit);
   }
 
-  async findOne(id: string): Promise<Voucher> {
-    const voucher = await this.prisma.voucher.findUnique({ where: { id } });
+  async findOne(id: string): Promise<VoucherWithClaimCount> {
+    const voucher = await this.prisma.voucher.findUnique({ where: { id }, include: VOUCHER_INCLUDE });
     if (!voucher) {
       throw new NotFoundException('Không tìm thấy voucher');
     }

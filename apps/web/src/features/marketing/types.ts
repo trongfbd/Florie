@@ -80,6 +80,10 @@ export interface Popup {
   imageUrl: string | null;
   content: string | null;
   linkUrl: string | null;
+  voucherId: string | null;
+  voucher: { id: string; code: string; discountType: "PERCENTAGE" | "FIXED_AMOUNT"; discountValue: number } | null;
+  showToNewCustomers: boolean;
+  returningCustomerMinOrders: number | null;
 }
 
 export interface SiteSettings {

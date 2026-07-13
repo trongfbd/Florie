@@ -9,6 +9,7 @@ import { useCustomerAuthStore } from "@/stores/customer-auth-store";
 import { useLogoutCustomer } from "@/features/customer-auth/hooks";
 import { formatVnd } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
+import { MyVouchersSection } from "@/features/voucher-claims/components/my-vouchers-section";
 import { fetchMyOrders } from "../api";
 
 export function AccountPageContent() {
@@ -72,6 +73,8 @@ export function AccountPageContent() {
           </button>
         </div>
       </div>
+
+      <MyVouchersSection />
 
       <div className="space-y-4">
         <h2 className="font-display text-2xl font-bold text-heading">Lịch sử đơn hàng</h2>

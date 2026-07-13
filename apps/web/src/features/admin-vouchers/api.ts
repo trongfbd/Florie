@@ -1,7 +1,7 @@
 import { adminApiClient } from "@/lib/admin-api-client";
 import type { PaginatedVouchers, Voucher, VoucherFormInput } from "./types";
 
-export async function fetchVouchers(query: { page?: number }): Promise<PaginatedVouchers> {
+export async function fetchVouchers(query: { page?: number; limit?: number }): Promise<PaginatedVouchers> {
   const { data } = await adminApiClient.get<PaginatedVouchers>("/api/v1/vouchers", { params: query });
   return data;
 }

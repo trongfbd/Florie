@@ -12,6 +12,11 @@ export function useVoucher(id: string) {
   return useQuery({ queryKey: [...KEY, id], queryFn: () => fetchVoucher(id), enabled: !!id });
 }
 
+/** For pickers (popup voucher selection) — a flat list, not paginated UI. */
+export function useVoucherOptions() {
+  return useQuery({ queryKey: [...KEY, "options"], queryFn: () => fetchVouchers({ page: 1, limit: 100 }) });
+}
+
 export function useCreateVoucher() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useVoucherOptions } from "@/features/admin-vouchers/hooks";
 import { useCreatePopup, useUpdatePopup } from "../hooks";
 import type { Popup } from "../types";
 
@@ -13,12 +14,16 @@ const schema = z.object({
   content: z.string().optional(),
   linkUrl: z.string().optional(),
   isActive: z.boolean().optional(),
+  voucherId: z.string().optional(),
+  showToNewCustomers: z.boolean().optional(),
+  returningCustomerMinOrders: z.coerce.number().optional().or(z.literal(NaN)),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 export function PopupForm({ popup }: { popup?: Popup }) {
   const router = useRouter();
+  const { data: vouchersData } = useVoucherOptions();
   const createMutation = useCreatePopup();
   const updateMutation = useUpdatePopup(popup?.id ?? "");
   const mutation = popup ? updateMutation : createMutation;
@@ -36,12 +41,24 @@ export function PopupForm({ popup }: { popup?: Popup }) {
           content: popup.content ?? "",
           linkUrl: popup.linkUrl ?? "",
           isActive: popup.isActive,
+          voucherId: popup.voucherId ?? "",
+          showToNewCustomers: popup.showToNewCustomers,
+          returningCustomerMinOrders: popup.returningCustomerMinOrders ?? undefined,
         }
-      : { isActive: true },
+      : { isActive: true, showToNewCustomers: true },
   });
 
   function onSubmit(values: FormValues) {
-    mutation.mutate(values, { onSuccess: () => router.push("/admin/popup") });
+    mutation.mutate(
+      {
+        ...values,
+        voucherId: values.voucherId || undefined,
+        returningCustomerMinOrders: Number.isNaN(values.returningCustomerMinOrders)
+          ? undefined
+          : values.returningCustomerMinOrders,
+      },
+      { onSuccess: () => router.push("/admin/popup") },
+    );
   }
 
   return (
@@ -74,12 +91,54 @@ export function PopupForm({ popup }: { popup?: Popup }) {
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">Link khi bấm &ldquo;Xem ngay&rdquo; (không bắt buộc)</label>
+        <label className="text-sm font-semibold text-heading">Link khi bấm &ldquo;Mua ngay&rdquo; (không bắt buộc)</label>
         <input
           {...register("linkUrl")}
           placeholder="/flash-sale"
           className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
         />
+      </div>
+
+      <div className="space-y-3 rounded-brand border-2 border-secondary bg-secondary/20 p-4">
+        <div className="space-y-1">
+          <label className="text-sm font-semibold text-heading">
+            Voucher gắn với popup này <span className="text-destructive">*</span>
+          </label>
+          <select
+            {...register("voucherId")}
+            className="w-full rounded-lg border-2 border-secondary bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+          >
+            <option value="">-- Chưa chọn (popup sẽ không hiển thị công khai) --</option>
+            {vouchersData?.data.map((voucher) => (
+              <option key={voucher.id} value={voucher.id}>
+                {voucher.code} —{" "}
+                {voucher.discountType === "PERCENTAGE" ? `${voucher.discountValue}%` : `${voucher.discountValue}đ`}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-foreground/50">
+            Popup chỉ hiển thị công khai khi voucher này đang hoạt động và trong thời gian hiệu lực.
+          </p>
+        </div>
+
+        <div className="space-y-2 border-t border-secondary pt-3">
+          <p className="text-sm font-semibold text-heading">Đối tượng hiển thị</p>
+          <label className="flex items-center gap-2 text-sm text-heading">
+            <input type="checkbox" {...register("showToNewCustomers")} className="h-4 w-4 accent-accent" />
+            Khách hàng mới (chưa từng đặt đơn nào)
+          </label>
+          <div className="flex items-center gap-2 text-sm text-heading">
+            <span>Khách cũ đã đặt từ</span>
+            <input
+              type="number"
+              min={1}
+              {...register("returningCustomerMinOrders")}
+              placeholder="—"
+              className="w-20 rounded-lg border-2 border-secondary px-2 py-1.5 text-sm outline-none focus:border-accent"
+            />
+            <span>đơn trở lên (để trống nếu không áp dụng)</span>
+          </div>
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm font-semibold text-heading">

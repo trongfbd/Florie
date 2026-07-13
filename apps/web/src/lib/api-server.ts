@@ -14,7 +14,6 @@ import type {
   BlogListResult,
   Combo,
   FlashSale,
-  Popup,
   SiteSettings,
 } from '@/features/marketing/types';
 
@@ -117,14 +116,6 @@ export function getBlogs(query: { page?: number; search?: string } = {}): Promis
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {
   try {
     return await apiFetch<Blog>(`/storefront/blogs/${slug}`);
-  } catch {
-    return null;
-  }
-}
-
-export async function getActivePopup(): Promise<Popup | null> {
-  try {
-    return await apiFetch<Popup | null>('/storefront/popup');
   } catch {
     return null;
   }

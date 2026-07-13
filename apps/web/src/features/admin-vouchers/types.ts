@@ -13,6 +13,7 @@ export interface Voucher {
   startAt: string;
   endAt: string;
   isActive: boolean;
+  _count: { claims: number };
 }
 
 export interface VoucherFormInput {

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
 import { CategoriesService } from '../categories/categories.service';
@@ -11,6 +11,9 @@ import { BlogsService } from '../blogs/blogs.service';
 import { PopupsService } from '../popups/popups.service';
 import { QueryBlogDto } from '../blogs/dto/query-blog.dto';
 import { BannerPosition } from '@prisma/client';
+import { OptionalCustomerAuthGuard } from '../customer-auth/guards/optional-customer-auth.guard';
+import { CurrentCustomer } from '../customer-auth/decorators/current-customer.decorator';
+import type { AuthenticatedCustomer } from '../customer-auth/types/customer-jwt-payload.type';
 
 @ApiTags('storefront')
 @Public()
@@ -93,8 +96,11 @@ export class StorefrontController {
   }
 
   @Get('popup')
-  @ApiOperation({ summary: '[Public] Popup đang hoạt động (null nếu không có)' })
-  findActivePopup() {
-    return this.popupsService.findActive();
+  @UseGuards(OptionalCustomerAuthGuard)
+  @ApiOperation({
+    summary: '[Public] Popup đang hoạt động phù hợp với khách hiện tại (null nếu không có) — có gắn voucher',
+  })
+  findActivePopup(@CurrentCustomer() customer: AuthenticatedCustomer | undefined) {
+    return this.popupsService.findActiveForCustomer(customer?.id ?? null);
   }
 }

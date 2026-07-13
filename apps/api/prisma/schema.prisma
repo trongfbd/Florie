@@ -170,6 +170,7 @@ model Customer {
   wishlistItems WishlistItem[]
   reviews       ProductReview[]
   refreshTokens CustomerRefreshToken[]
+  voucherClaims VoucherClaim[]
 
   @@index([isVip])
 }
@@ -395,6 +396,8 @@ model Voucher {
   createdAt         DateTime     @default(now())
 
   orders Order[]
+  popups Popup[]
+  claims VoucherClaim[]
 
   @@index([isActive])
 }
@@ -472,7 +475,39 @@ model Popup {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Voucher campaign this popup advertises — the popup only ever shows publicly
+  // when this voucher is set AND currently active/within its own date window.
+  voucherId String?
+  voucher   Voucher? @relation(fields: [voucherId], references: [id])
+
+  // Audience targeting, admin-configurable. A visitor matches if EITHER
+  // condition holds: they're a new customer (0 orders, includes guests), OR
+  // they're a returning customer with orderCount >= returningCustomerMinOrders.
+  showToNewCustomers         Boolean @default(true)
+  returningCustomerMinOrders Int?
+
+  claims VoucherClaim[]
+
   @@index([isActive])
+}
+
+// Records a customer "claiming" a voucher via a popup — this is an engagement/
+// marketing record ("this voucher is now in my account"), deliberately separate
+// from Voucher.usedCount (which only ever increments on a real completed order,
+// unchanged). A claim makes the code visible on the customer's account; it does
+// not itself consume Voucher.usageLimit.
+model VoucherClaim {
+  id         String   @id @default(cuid())
+  voucherId  String
+  voucher    Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  popupId    String?
+  popup      Popup?   @relation(fields: [popupId], references: [id])
+  claimedAt  DateTime @default(now())
+
+  @@unique([voucherId, customerId])
+  @@index([customerId])
 }
 
 model SiteSettings {

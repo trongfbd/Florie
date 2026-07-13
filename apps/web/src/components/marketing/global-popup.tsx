@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, Sparkles, X } from "lucide-react";
+import { Check, Gift, Sparkles, X } from "lucide-react";
+import { useCustomerAuthStore } from "@/stores/customer-auth-store";
+import { useActivePopup, useClaimVoucher } from "@/features/voucher-claims/hooks";
 import type { Popup } from "@/features/marketing/types";
 
 const SESSION_KEY = "florie-popup-shown";
@@ -19,8 +22,20 @@ const CONFETTI = [
   { left: "4%", top: "48%", size: 8, delay: 1.2, color: "bg-white/60" },
 ];
 
-export function GlobalPopup({ popup }: { popup: Popup | null }) {
+function formatDiscount(voucher: Popup["voucher"]): string {
+  if (!voucher) return "";
+  return voucher.discountType === "PERCENTAGE"
+    ? `Giảm ${voucher.discountValue}%`
+    : `Giảm ${voucher.discountValue.toLocaleString("vi-VN")}đ`;
+}
+
+export function GlobalPopup() {
+  const pathname = usePathname();
+  const customer = useCustomerAuthStore((state) => state.customer);
+  const { data: popup } = useActivePopup();
+  const claimMutation = useClaimVoucher();
   const [open, setOpen] = useState(false);
+  const [claimed, setClaimed] = useState(false);
 
   useEffect(() => {
     if (!popup) return;
@@ -35,6 +50,11 @@ export function GlobalPopup({ popup }: { popup: Popup | null }) {
   }, [popup]);
 
   if (!popup) return null;
+
+  function handleClaim() {
+    if (!popup) return;
+    claimMutation.mutate(popup.id, { onSuccess: () => setClaimed(true) });
+  }
 
   return (
     <AnimatePresence>
@@ -83,14 +103,24 @@ export function GlobalPopup({ popup }: { popup: Popup | null }) {
                       <Image src={popup.imageUrl} alt="" fill className="object-cover" />
                     </div>
                   ) : (
-                    <div className="flex h-28 w-full items-center justify-center bg-secondary">
-                      <Gift size={40} className="text-accent" strokeWidth={1.5} />
+                    <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-secondary">
+                      <Gift size={32} className="text-accent" strokeWidth={1.5} />
+                      {popup.voucher && (
+                        <p className="font-display text-sm font-extrabold text-accent">
+                          {formatDiscount(popup.voucher)}
+                        </p>
+                      )}
                     </div>
                   )}
                   <div className="border-t-2 border-dashed border-secondary px-4 py-3">
                     <p className="font-display text-lg font-extrabold uppercase leading-tight text-accent">
                       {popup.title}
                     </p>
+                    {popup.voucher && (
+                      <p className="mt-1 font-mono text-xs font-bold tracking-wider text-heading/70">
+                        Mã: {popup.voucher.code}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {/* Ticket notches — sit on the outer (non-clipped) wrapper so they poke past the ticket edge */}
@@ -104,16 +134,43 @@ export function GlobalPopup({ popup }: { popup: Popup | null }) {
                 </p>
               )}
 
-              {popup.linkUrl && (
-                <Link
-                  href={popup.linkUrl}
-                  onClick={() => setOpen(false)}
-                  className="group mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-8 py-3 text-sm font-bold text-accent shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
-                >
-                  <Sparkles size={15} className="transition-transform group-hover:rotate-12" />
-                  Xem ngay
-                </Link>
-              )}
+              <div className="mt-4 flex flex-col items-center gap-2">
+                {claimed ? (
+                  <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-5 py-2.5 text-sm font-bold text-white">
+                    <Check size={16} />
+                    Đã lưu vào tài khoản!
+                  </p>
+                ) : customer ? (
+                  <button
+                    type="button"
+                    onClick={handleClaim}
+                    disabled={claimMutation.isPending}
+                    className="group inline-flex items-center gap-1.5 rounded-full bg-white px-8 py-3 text-sm font-bold text-accent shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl disabled:opacity-60"
+                  >
+                    <Sparkles size={15} className="transition-transform group-hover:rotate-12" />
+                    {claimMutation.isPending ? "Đang lưu..." : "Nhận ưu đãi ngay"}
+                  </button>
+                ) : (
+                  <Link
+                    href={`/dang-nhap?redirect=${encodeURIComponent(pathname)}`}
+                    onClick={() => setOpen(false)}
+                    className="group inline-flex items-center gap-1.5 rounded-full bg-white px-8 py-3 text-sm font-bold text-accent shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
+                  >
+                    <Sparkles size={15} className="transition-transform group-hover:rotate-12" />
+                    Đăng nhập để nhận ưu đãi
+                  </Link>
+                )}
+
+                {claimed && popup.linkUrl && (
+                  <Link
+                    href={popup.linkUrl}
+                    onClick={() => setOpen(false)}
+                    className="text-xs font-semibold text-white/80 underline-offset-2 hover:underline"
+                  >
+                    Mua ngay →
+                  </Link>
+                )}
+              </div>
             </div>
           </motion.div>
         </motion.div>

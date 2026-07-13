@@ -5,6 +5,10 @@ export interface Popup {
   content: string | null;
   linkUrl: string | null;
   isActive: boolean;
+  voucherId: string | null;
+  voucher: { id: string; code: string } | null;
+  showToNewCustomers: boolean;
+  returningCustomerMinOrders: number | null;
 }
 
 export interface PopupFormInput {
@@ -13,6 +17,9 @@ export interface PopupFormInput {
   content?: string;
   linkUrl?: string;
   isActive?: boolean;
+  voucherId?: string;
+  showToNewCustomers?: boolean;
+  returningCustomerMinOrders?: number;
 }
 
 export interface PaginatedPopups {

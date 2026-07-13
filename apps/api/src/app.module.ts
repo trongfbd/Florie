@@ -30,6 +30,7 @@ import { SiteSettingsModule } from './site-settings/site-settings.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ReportsModule } from './reports/reports.module';
 import { AiModule } from './ai/ai.module';
+import { VoucherClaimsModule } from './voucher-claims/voucher-claims.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -65,6 +66,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     ExpensesModule,
     ReportsModule,
     AiModule,
+    VoucherClaimsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
