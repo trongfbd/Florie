@@ -27,6 +27,8 @@ import { BannersModule } from './banners/banners.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { PopupsModule } from './popups/popups.module';
 import { SiteSettingsModule } from './site-settings/site-settings.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { ReportsModule } from './reports/reports.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -59,6 +61,8 @@ import { RolesGuard } from './auth/guards/roles.guard';
     BlogsModule,
     PopupsModule,
     SiteSettingsModule,
+    ExpensesModule,
+    ReportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
