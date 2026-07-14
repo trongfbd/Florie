@@ -24,6 +24,7 @@ const schema = z.object({
   categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
   basePrice: z.coerce.number().min(0, "Giá không hợp lệ"),
   salePrice: z.coerce.number().min(0).optional().or(z.literal(NaN)),
+  costPrice: z.coerce.number().min(0).optional().or(z.literal(NaN)),
   color: z.string().optional(),
   status: z.enum(["DRAFT", "ACTIVE", "OUT_OF_STOCK", "ARCHIVED"]).optional(),
 });
@@ -53,6 +54,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
           categoryId: product.category.id,
           basePrice: product.basePrice,
           salePrice: product.salePrice ?? undefined,
+          costPrice: product.costPrice ?? undefined,
           color: product.color ?? "",
           status: product.status,
         }
@@ -65,6 +67,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
     const payload = {
       ...values,
       salePrice: Number.isNaN(values.salePrice) ? undefined : values.salePrice,
+      costPrice: Number.isNaN(values.costPrice) ? undefined : values.costPrice,
     };
     mutation.mutate(payload, { onSuccess: () => router.push("/admin/san-pham") });
   }
@@ -114,6 +117,18 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
             className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
           />
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm font-semibold text-heading">Giá vốn (không bắt buộc)</label>
+        <input
+          type="number"
+          {...register("costPrice")}
+          className="w-full max-w-[calc(50%-0.5rem)] rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
+        />
+        <p className="text-xs text-foreground/50">
+          Dùng để tính lợi nhuận gộp ở Báo cáo — không hiển thị cho khách hàng.
+        </p>
       </div>
 
       <div className="space-y-1">

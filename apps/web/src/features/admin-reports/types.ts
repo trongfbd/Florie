@@ -7,6 +7,11 @@ export interface ReportSummary {
   cancelledOrderCount: number;
   avgOrderValue: number;
   totalExpenses: number;
+  /** Cost of goods sold — only sums order items that had a costPrice snapshot. */
+  cogs: number;
+  grossProfit: number;
+  /** Fraction (0-1) of the period's order items that had a costPrice set; null if no items. */
+  costPriceCoverage: number | null;
   netProfit: number;
   newCustomerCount: number;
 }

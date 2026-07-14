@@ -45,6 +45,13 @@ export class CreateProductDto {
   @Min(0)
   salePrice?: number;
 
+  @ApiPropertyOptional({ description: 'VND — giá vốn, dùng để tính lợi nhuận gộp ở Reports, không hiển thị cho khách' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  costPrice?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

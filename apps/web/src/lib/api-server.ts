@@ -5,6 +5,7 @@ import type {
   ProductDetail,
   ProductListItem,
   StorefrontProductQuery,
+  StorefrontStats,
 } from '@/features/storefront/types';
 import type { Review } from '@/features/reviews/types';
 import type {
@@ -140,6 +141,14 @@ export async function getBlogs(
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {
   try {
     return await apiFetch<Blog>(`/storefront/blogs/${slug}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function getStorefrontStats(): Promise<StorefrontStats | null> {
+  try {
+    return await apiFetch<StorefrontStats>('/storefront/stats');
   } catch {
     return null;
   }

@@ -8,9 +8,29 @@ import { useEffect } from "react";
 import { useCustomerAuthStore } from "@/stores/customer-auth-store";
 import { useLogoutCustomer } from "@/features/customer-auth/hooks";
 import { formatVnd } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { MyVouchersSection } from "@/features/voucher-claims/components/my-vouchers-section";
 import { fetchMyOrders } from "../api";
+
+function OrderListSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="flex items-center justify-between gap-2 rounded-brand border-2 border-secondary bg-white p-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <div className="space-y-2 text-right">
+            <Skeleton className="ml-auto h-4 w-20" />
+            <Skeleton className="ml-auto h-3 w-16" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function AccountPageContent() {
   const router = useRouter();
@@ -79,7 +99,7 @@ export function AccountPageContent() {
       <div className="space-y-4">
         <h2 className="font-display text-2xl font-bold text-heading">Lịch sử đơn hàng</h2>
 
-        {isLoading && <p className="text-foreground/60">Đang tải đơn hàng...</p>}
+        {isLoading && <OrderListSkeleton />}
 
         {orders && orders.data.length === 0 && (
           <p className="text-foreground/60">Bạn chưa có đơn hàng nào.</p>

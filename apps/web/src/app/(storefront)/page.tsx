@@ -1,10 +1,18 @@
-import Image from "next/image";
 import Link from "next/link";
-import { getBanners, getCategories, getCombos, getActiveFlashSale, getProducts } from "@/lib/api-server";
+import {
+  getBanners,
+  getCategories,
+  getCombos,
+  getActiveFlashSale,
+  getProducts,
+  getStorefrontStats,
+} from "@/lib/api-server";
 import { CategoryCard } from "@/features/storefront/components/category-card";
 import { ProductGrid } from "@/features/storefront/components/product-grid";
+import { SocialProofStats } from "@/features/storefront/components/social-proof-stats";
 import { ComboGrid } from "@/features/marketing/components/combo-grid";
 import { FlashSaleSection } from "@/features/marketing/components/flash-sale-section";
+import { HeroCarousel } from "@/features/marketing/components/hero-carousel";
 import { FadeIn } from "@/components/motion/fade-in";
 import { Container } from "@/components/layout/container";
 
@@ -20,29 +28,25 @@ const TRUST_BADGES = [
 ];
 
 export default async function Home() {
-  const [categories, featured, banners, flashSale, combos] = await Promise.all([
+  const [categories, featured, banners, flashSale, combos, stats] = await Promise.all([
     getCategories(),
     getProducts({ sort: "newest", limit: 10 }),
     getBanners("HOME"),
     getActiveFlashSale(),
     getCombos(),
+    getStorefrontStats(),
   ]);
 
-  const hero = banners[0];
-  const heroImageUrl = hero?.imageUrl ?? FALLBACK_HERO_IMAGE_URL;
-  const heroLink = hero?.linkUrl ?? "/danh-muc/hoa-sinh-nhat";
+  const heroImages =
+    banners.length > 0
+      ? banners.map((banner) => ({ url: banner.imageUrl, alt: banner.title }))
+      : [{ url: FALLBACK_HERO_IMAGE_URL, alt: "" }];
+  const heroLink = banners[0]?.linkUrl ?? "/danh-muc/hoa-sinh-nhat";
 
   return (
     <div className="space-y-24 pb-24">
       <section className="relative flex min-h-[620px] items-center overflow-hidden">
-        <Image
-          src={heroImageUrl}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="animate-hero-zoom object-cover"
-        />
+        <HeroCarousel images={heroImages} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/15" />
         <div className="absolute inset-0 bg-gradient-to-r from-heading/40 via-transparent to-transparent" />
 
@@ -87,6 +91,14 @@ export default async function Home() {
           </Container>
         </div>
       </section>
+
+      {stats && (
+        <Container>
+          <FadeIn>
+            <SocialProofStats stats={stats} />
+          </FadeIn>
+        </Container>
+      )}
 
       <Container className="space-y-24">
         {flashSale && flashSale.items.length > 0 && (

@@ -263,6 +263,7 @@ model Product {
   category       Category      @relation(fields: [categoryId], references: [id])
   basePrice      Int
   salePrice      Int?
+  costPrice      Int? // giá vốn — dùng để tính lợi nhuận gộp thật ở Reports, để trống nếu chưa xác định
   color          String?
   seoTitle       String?
   seoDescription String?
@@ -660,6 +661,7 @@ model OrderItem {
   itemName  String // snapshot at time of order
   quantity  Int
   unitPrice Int // snapshot at time of order
+  costPrice Int? // snapshot of unit cost at time of order — null if the product/combo had no cost price set then
   subtotal  Int
 
   @@index([orderId])

@@ -54,6 +54,7 @@ interface ResolvedOrderItem {
   itemName: string;
   quantity: number;
   unitPrice: number;
+  costPrice?: number; // snapshot of unit cost — undefined if not set on the product(s) at order time
   subtotal: number;
 }
 
@@ -351,12 +352,14 @@ export class OrdersService {
           itemName: product.name,
           quantity: item.quantity,
           unitPrice,
+          costPrice: product.costPrice ?? undefined,
           subtotal: unitPrice * item.quantity,
         });
         subtotal += unitPrice * item.quantity;
       } else {
         const combo = await this.prisma.combo.findUnique({
           where: { id: item.comboId },
+          include: { items: { include: { product: { select: { costPrice: true } } } } },
         });
         if (!combo) {
           throw new NotFoundException(`Không tìm thấy combo ${item.comboId}`);
@@ -366,11 +369,18 @@ export class OrdersService {
             `Combo "${combo.name}" đã ngừng kinh doanh`,
           );
         }
+        // Cost of assembling one combo unit = sum of its constituent products'
+        // cost prices — only meaningful if every constituent has one set,
+        // otherwise leave it undefined rather than silently underestimating.
+        const comboCostPrice = combo.items.every((ci) => ci.product.costPrice != null)
+          ? combo.items.reduce((sum, ci) => sum + ci.quantity * (ci.product.costPrice ?? 0), 0)
+          : undefined;
         resolved.push({
           comboId: combo.id,
           itemName: combo.name,
           quantity: item.quantity,
           unitPrice: combo.price,
+          costPrice: comboCostPrice,
           subtotal: combo.price * item.quantity,
         });
         subtotal += combo.price * item.quantity;

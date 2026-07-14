@@ -1,7 +1,16 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { buildPaginatedResult, PaginatedResult } from '../common/dto/paginated-result.dto';
+import {
+  buildPaginatedResult,
+  PaginatedResult,
+} from '../common/dto/paginated-result.dto';
 import { generateUniqueSlug } from '../common/utils/unique-slug.util';
 import { STORAGE_SERVICE } from '../storage/storage.service.interface';
 import type { StorageService } from '../storage/storage.service.interface';
@@ -24,8 +33,37 @@ const PRODUCT_LIST_INCLUDE = {
   tags: { include: { tag: true } },
 } satisfies Prisma.ProductInclude;
 
-type ProductDetail = Prisma.ProductGetPayload<{ include: typeof PRODUCT_DETAIL_INCLUDE }>;
-type ProductListItem = Prisma.ProductGetPayload<{ include: typeof PRODUCT_LIST_INCLUDE }>;
+type ProductDetail = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_DETAIL_INCLUDE;
+}>;
+type ProductListItem = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_LIST_INCLUDE;
+}>;
+
+// costPrice is internal-only (used for margin reporting) — every public/storefront
+// query below must omit it, same reasoning as omitting Customer.passwordHash.
+const PUBLIC_OMIT = { costPrice: true } satisfies Prisma.ProductOmit;
+
+const NEW_PRODUCT_WINDOW_DAYS = 14;
+const BEST_SELLER_COUNT = 3;
+
+export interface PublicProductBadges {
+  avgRating: number;
+  reviewCount: number;
+  isNew: boolean;
+  isBestSeller: boolean;
+}
+
+type PublicProductDetail = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_DETAIL_INCLUDE;
+  omit: typeof PUBLIC_OMIT;
+}> &
+  PublicProductBadges;
+type PublicProductListItem = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_LIST_INCLUDE;
+  omit: typeof PUBLIC_OMIT;
+}> &
+  PublicProductBadges;
 
 @Injectable()
 export class ProductsService {
@@ -40,7 +78,9 @@ export class ProductsService {
 
     const slug = dto.slug
       ? await this.assertSlugAvailable(dto.slug)
-      : await generateUniqueSlug(dto.name, (candidate) => this.slugExists(candidate));
+      : await generateUniqueSlug(dto.name, (candidate) =>
+          this.slugExists(candidate),
+        );
 
     const { tagIds, ...productData } = dto;
 
@@ -48,18 +88,27 @@ export class ProductsService {
       data: {
         ...productData,
         slug,
-        ...(tagIds && tagIds.length > 0 && { tags: { create: tagIds.map((tagId) => ({ tagId })) } }),
+        ...(tagIds &&
+          tagIds.length > 0 && {
+            tags: { create: tagIds.map((tagId) => ({ tagId })) },
+          }),
       },
       include: PRODUCT_DETAIL_INCLUDE,
     });
   }
 
-  async findAll(query: QueryProductDto): Promise<PaginatedResult<ProductListItem>> {
+  async findAll(
+    query: QueryProductDto,
+  ): Promise<PaginatedResult<ProductListItem>> {
     const where: Prisma.ProductWhereInput = {
-      ...(query.search && { name: { contains: query.search, mode: 'insensitive' } }),
+      ...(query.search && {
+        name: { contains: query.search, mode: 'insensitive' },
+      }),
       ...(query.categoryId && { categoryId: query.categoryId }),
       ...(query.status && { status: query.status }),
-      ...(query.color && { color: { equals: query.color, mode: 'insensitive' } }),
+      ...(query.color && {
+        color: { equals: query.color, mode: 'insensitive' },
+      }),
       ...(query.tagId && { tags: { some: { tagId: query.tagId } } }),
       // Filtered on basePrice; salePrice-aware "effective price" filtering is
       // deferred to the storefront sprint where it's actually load-bearing.
@@ -99,7 +148,9 @@ export class ProductsService {
   }
 
   /** Public storefront listing: always ACTIVE-only, never overridable via query params. */
-  async findPublicList(query: QueryPublicProductDto): Promise<PaginatedResult<ProductListItem>> {
+  async findPublicList(
+    query: QueryPublicProductDto,
+  ): Promise<PaginatedResult<PublicProductListItem>> {
     let categoryId: string | undefined;
     if (query.categorySlug) {
       const category = await this.prisma.category.findUnique({
@@ -114,9 +165,13 @@ export class ProductsService {
 
     const where: Prisma.ProductWhereInput = {
       status: 'ACTIVE',
-      ...(query.search && { name: { contains: query.search, mode: 'insensitive' } }),
+      ...(query.search && {
+        name: { contains: query.search, mode: 'insensitive' },
+      }),
       ...(categoryId && { categoryId }),
-      ...(query.color && { color: { equals: query.color, mode: 'insensitive' } }),
+      ...(query.color && {
+        color: { equals: query.color, mode: 'insensitive' },
+      }),
       ...(query.tagId && { tags: { some: { tagId: query.tagId } } }),
       ...((query.minPrice !== undefined || query.maxPrice !== undefined) && {
         basePrice: {
@@ -139,6 +194,7 @@ export class ProductsService {
       this.prisma.product.findMany({
         where,
         include: PRODUCT_LIST_INCLUDE,
+        omit: PUBLIC_OMIT,
         orderBy,
         skip: query.skip,
         take: query.take,
@@ -146,13 +202,15 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
-    return buildPaginatedResult(data, total, query.page, query.limit);
+    const withBadges = await this.attachPublicBadges(data);
+    return buildPaginatedResult(withBadges, total, query.page, query.limit);
   }
 
-  async findPublicBySlug(slug: string): Promise<ProductDetail> {
+  async findPublicBySlug(slug: string): Promise<PublicProductDetail> {
     const product = await this.prisma.product.findFirst({
       where: { slug, status: 'ACTIVE' },
       include: PRODUCT_DETAIL_INCLUDE,
+      omit: PUBLIC_OMIT,
     });
 
     if (!product) {
@@ -161,13 +219,74 @@ export class ProductsService {
 
     // Best-effort view counter — never blocks the response on failure.
     this.prisma.product
-      .update({ where: { id: product.id }, data: { viewCount: { increment: 1 } } })
+      .update({
+        where: { id: product.id },
+        data: { viewCount: { increment: 1 } },
+      })
       .catch(() => undefined);
 
-    return product;
+    const [withBadges] = await this.attachPublicBadges([product]);
+    return withBadges;
   }
 
-  async findRelatedProducts(slug: string, limit = 4): Promise<ProductListItem[]> {
+  /**
+   * Adds avgRating/reviewCount (from approved reviews) and isNew/isBestSeller
+   * flags to a batch of public product results — one groupBy query each,
+   * not N+1 per product.
+   */
+  private async attachPublicBadges<T extends { id: string; createdAt: Date }>(
+    products: T[],
+  ): Promise<(T & PublicProductBadges)[]> {
+    if (products.length === 0) return [];
+
+    const productIds = products.map((p) => p.id);
+    const [reviewAggregates, bestSellerIds] = await Promise.all([
+      this.prisma.productReview.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds }, isApproved: true },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+      this.getBestSellerProductIds(),
+    ]);
+
+    const reviewByProductId = new Map(
+      reviewAggregates.map((r) => [
+        r.productId,
+        { avg: r._avg.rating ?? 0, count: r._count.rating },
+      ]),
+    );
+    const newSince = new Date(
+      Date.now() - NEW_PRODUCT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    return products.map((product) => ({
+      ...product,
+      avgRating: reviewByProductId.get(product.id)?.avg ?? 0,
+      reviewCount: reviewByProductId.get(product.id)?.count ?? 0,
+      isNew: product.createdAt >= newSince,
+      isBestSeller: bestSellerIds.has(product.id),
+    }));
+  }
+
+  /** Top N products by total quantity sold across completed orders (all-time). */
+  private async getBestSellerProductIds(): Promise<Set<string>> {
+    const grouped = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: { productId: { not: null }, order: { status: 'COMPLETED' } },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: BEST_SELLER_COUNT,
+    });
+    return new Set(
+      grouped.map((g) => g.productId).filter((id): id is string => id !== null),
+    );
+  }
+
+  async findRelatedProducts(
+    slug: string,
+    limit = 4,
+  ): Promise<PublicProductListItem[]> {
     const product = await this.prisma.product.findFirst({
       where: { slug, status: 'ACTIVE' },
       select: { id: true, categoryId: true },
@@ -177,12 +296,18 @@ export class ProductsService {
       return [];
     }
 
-    return this.prisma.product.findMany({
-      where: { categoryId: product.categoryId, status: 'ACTIVE', id: { not: product.id } },
+    const related = await this.prisma.product.findMany({
+      where: {
+        categoryId: product.categoryId,
+        status: 'ACTIVE',
+        id: { not: product.id },
+      },
       include: PRODUCT_LIST_INCLUDE,
+      omit: PUBLIC_OMIT,
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+    return this.attachPublicBadges(related);
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<ProductDetail> {
@@ -191,9 +316,14 @@ export class ProductsService {
     if (dto.categoryId) {
       await this.assertCategoryExists(dto.categoryId);
     }
-    this.assertValidPricing(dto.basePrice ?? existing.basePrice, dto.salePrice ?? existing.salePrice ?? undefined);
+    this.assertValidPricing(
+      dto.basePrice ?? existing.basePrice,
+      dto.salePrice ?? existing.salePrice ?? undefined,
+    );
 
-    const slug = dto.slug ? await this.assertSlugAvailable(dto.slug, id) : undefined;
+    const slug = dto.slug
+      ? await this.assertSlugAvailable(dto.slug, id)
+      : undefined;
     const { tagIds, ...productData } = dto;
 
     return this.prisma.product.update({
@@ -215,19 +345,27 @@ export class ProductsService {
   async remove(id: string): Promise<void> {
     await this.findOne(id);
 
-    const orderItemCount = await this.prisma.orderItem.count({ where: { productId: id } });
+    const orderItemCount = await this.prisma.orderItem.count({
+      where: { productId: id },
+    });
     if (orderItemCount > 0) {
       throw new ConflictException(
         'Sản phẩm đã có trong đơn hàng — hãy chuyển trạng thái sang ARCHIVED thay vì xoá.',
       );
     }
 
-    const images = await this.prisma.productImage.findMany({ where: { productId: id } });
+    const images = await this.prisma.productImage.findMany({
+      where: { productId: id },
+    });
     await this.prisma.product.delete({ where: { id } });
     await Promise.all(
       images
         .filter((image) => image.storageKey)
-        .map((image) => this.storageService.delete(image.storageKey as string).catch(() => undefined)),
+        .map((image) =>
+          this.storageService
+            .delete(image.storageKey as string)
+            .catch(() => undefined),
+        ),
     );
   }
 
@@ -245,7 +383,9 @@ export class ProductsService {
       folder: 'products',
     });
 
-    const currentCount = await this.prisma.productImage.count({ where: { productId } });
+    const currentCount = await this.prisma.productImage.count({
+      where: { productId },
+    });
 
     return this.prisma.productImage.create({
       data: {
@@ -259,7 +399,9 @@ export class ProductsService {
   }
 
   async removeImage(productId: string, imageId: string): Promise<void> {
-    const image = await this.prisma.productImage.findUnique({ where: { id: imageId } });
+    const image = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+    });
 
     if (!image || image.productId !== productId) {
       throw new NotFoundException('Không tìm thấy ảnh sản phẩm');
@@ -272,7 +414,10 @@ export class ProductsService {
     }
   }
 
-  async setMaterials(productId: string, dto: SetProductMaterialsDto): Promise<ProductDetail> {
+  async setMaterials(
+    productId: string,
+    dto: SetProductMaterialsDto,
+  ): Promise<ProductDetail> {
     await this.findOne(productId);
 
     const materialIds = dto.materials.map((item) => item.materialId);
@@ -280,9 +425,13 @@ export class ProductsService {
       where: { id: { in: materialIds } },
       select: { id: true },
     });
-    const missing = materialIds.filter((id) => !foundMaterials.some((m) => m.id === id));
+    const missing = materialIds.filter(
+      (id) => !foundMaterials.some((m) => m.id === id),
+    );
     if (missing.length > 0) {
-      throw new NotFoundException(`Không tìm thấy vật tư: ${missing.join(', ')}`);
+      throw new NotFoundException(
+        `Không tìm thấy vật tư: ${missing.join(', ')}`,
+      );
     }
 
     await this.prisma.$transaction([
@@ -316,11 +465,17 @@ export class ProductsService {
   }
 
   private async slugExists(slug: string, excludeId?: string): Promise<boolean> {
-    const existing = await this.prisma.product.findUnique({ where: { slug }, select: { id: true } });
+    const existing = await this.prisma.product.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
     return !!existing && existing.id !== excludeId;
   }
 
-  private async assertSlugAvailable(slug: string, excludeId?: string): Promise<string> {
+  private async assertSlugAvailable(
+    slug: string,
+    excludeId?: string,
+  ): Promise<string> {
     const normalized = slug.trim().toLowerCase();
     if (await this.slugExists(normalized, excludeId)) {
       throw new ConflictException(`Slug "${normalized}" đã được sử dụng`);

@@ -7,7 +7,24 @@ import { useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { useCustomerAuthStore } from "@/stores/customer-auth-store";
 import { formatVnd } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToggleWishlist, useWishlistQuery } from "../hooks";
+
+function WishlistGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="overflow-hidden rounded-brand border-2 border-secondary bg-white shadow-sm">
+          <Skeleton className="aspect-square w-full rounded-none" />
+          <div className="space-y-2 p-4">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function WishlistPageContent() {
   const router = useRouter();
@@ -27,7 +44,7 @@ export function WishlistPageContent() {
   }
 
   if (isLoading) {
-    return <p className="text-foreground/60">Đang tải danh sách yêu thích...</p>;
+    return <WishlistGridSkeleton />;
   }
 
   if (!wishlist || wishlist.length === 0) {

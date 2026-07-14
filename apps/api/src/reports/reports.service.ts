@@ -20,11 +20,15 @@ export class ReportsService {
   async getSummary(query: ReportDateRangeDto) {
     const { from, to } = this.resolveRange(query);
 
-    const [completedOrders, allOrdersCount, cancelledCount, expenseTotal, newCustomerCount] =
+    const [completedOrders, orderItems, allOrdersCount, cancelledCount, expenseTotal, newCustomerCount] =
       await Promise.all([
         this.prisma.order.findMany({
           where: { status: OrderStatus.COMPLETED, createdAt: { gte: from, lte: to } },
           select: { total: true },
+        }),
+        this.prisma.orderItem.findMany({
+          where: { order: { status: OrderStatus.COMPLETED, createdAt: { gte: from, lte: to } } },
+          select: { quantity: true, costPrice: true },
         }),
         this.prisma.order.count({ where: { createdAt: { gte: from, lte: to } } }),
         this.prisma.order.count({
@@ -40,6 +44,15 @@ export class ReportsService {
     const revenue = completedOrders.reduce((sum, order) => sum + order.total, 0);
     const totalExpenses = expenseTotal._sum.amount ?? 0;
 
+    // costPrice is only a snapshot from orders placed after the field was
+    // introduced — cogs and grossProfit only reflect the items that actually
+    // have one. costPriceCoverage tells the admin how much of the period's
+    // items that covers, so a partial figure isn't mistaken for a complete one.
+    const itemsWithCost = orderItems.filter((item) => item.costPrice != null);
+    const cogs = itemsWithCost.reduce((sum, item) => sum + item.costPrice! * item.quantity, 0);
+    const grossProfit = revenue - cogs;
+    const costPriceCoverage = orderItems.length > 0 ? itemsWithCost.length / orderItems.length : null;
+
     return {
       from,
       to,
@@ -49,7 +62,10 @@ export class ReportsService {
       cancelledOrderCount: cancelledCount,
       avgOrderValue: completedOrders.length > 0 ? Math.round(revenue / completedOrders.length) : 0,
       totalExpenses,
-      netProfit: revenue - totalExpenses,
+      cogs,
+      grossProfit,
+      costPriceCoverage,
+      netProfit: grossProfit - totalExpenses,
       newCustomerCount,
     };
   }

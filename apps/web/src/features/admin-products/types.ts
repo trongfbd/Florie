@@ -16,6 +16,7 @@ export interface ProductDetail extends ProductListItem {
   description: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  costPrice: number | null;
 }
 
 export interface ProductFormInput {
@@ -25,6 +26,7 @@ export interface ProductFormInput {
   categoryId: string;
   basePrice: number;
   salePrice?: number;
+  costPrice?: number;
   color?: string;
   status?: ProductStatus;
 }

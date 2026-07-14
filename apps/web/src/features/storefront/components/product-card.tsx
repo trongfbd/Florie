@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import type { ProductListItem } from "../types";
 
@@ -26,8 +27,22 @@ export function ProductCard({ product }: { product: ProductListItem }) {
             Chưa có ảnh
           </div>
         )}
+
+        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          {product.isBestSeller && (
+            <span className="rounded-full bg-heading px-2.5 py-1 text-xs font-bold text-white shadow-md">
+              Bán chạy
+            </span>
+          )}
+          {product.isNew && (
+            <span className="rounded-full bg-success px-2.5 py-1 text-xs font-bold text-white shadow-md">
+              Mới
+            </span>
+          )}
+        </div>
+
         {hasDiscount && (
-          <span className="absolute left-3 top-3 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-white shadow-md">
+          <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-white shadow-md">
             Giảm giá
           </span>
         )}
@@ -40,6 +55,13 @@ export function ProductCard({ product }: { product: ProductListItem }) {
         <h3 className="line-clamp-1 font-display text-base font-semibold text-heading">
           {product.name}
         </h3>
+        {product.reviewCount > 0 && (
+          <div className="flex items-center gap-1 text-xs text-foreground/60">
+            <Star size={13} className="fill-accent text-accent" />
+            <span className="font-medium text-heading">{product.avgRating.toFixed(1)}</span>
+            <span>({product.reviewCount})</span>
+          </div>
+        )}
         <div className="flex items-baseline gap-2">
           <span className="font-bold text-heading">
             {formatVnd(product.salePrice ?? product.basePrice)}

@@ -8,6 +8,7 @@ import { BlogsModule } from '../blogs/blogs.module';
 import { PopupsModule } from '../popups/popups.module';
 import { CustomerAuthModule } from '../customer-auth/customer-auth.module';
 import { StorefrontController } from './storefront.controller';
+import { StorefrontStatsService } from './storefront-stats.service';
 
 @Module({
   imports: [
@@ -21,5 +22,6 @@ import { StorefrontController } from './storefront.controller';
     CustomerAuthModule,
   ],
   controllers: [StorefrontController],
+  providers: [StorefrontStatsService],
 })
 export class StorefrontModule {}

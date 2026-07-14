@@ -44,6 +44,10 @@ export interface ProductListItem {
   category: { id: string; name: string; slug: string };
   images: ProductImage[];
   tags: ProductTag[];
+  avgRating: number;
+  reviewCount: number;
+  isNew: boolean;
+  isBestSeller: boolean;
 }
 
 export interface ProductDetail extends ProductListItem {
@@ -63,4 +67,11 @@ export interface StorefrontProductQuery {
   minPrice?: number;
   maxPrice?: number;
   sort?: 'newest' | 'priceAsc' | 'priceDesc' | 'name';
+}
+
+export interface StorefrontStats {
+  totalCustomers: number;
+  totalCompletedOrders: number;
+  avgRating: number;
+  totalReviews: number;
 }
