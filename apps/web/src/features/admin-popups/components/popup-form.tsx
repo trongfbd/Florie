@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useVoucherOptions } from "@/features/admin-vouchers/hooks";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { useCreatePopup, useUpdatePopup } from "../hooks";
 import type { Popup } from "../types";
 
@@ -31,6 +32,8 @@ export function PopupForm({ popup }: { popup?: Popup }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -72,14 +75,12 @@ export function PopupForm({ popup }: { popup?: Popup }) {
         {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">URL ảnh (không bắt buộc)</label>
-        <input
-          {...register("imageUrl")}
-          placeholder="https://..."
-          className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
-        />
-      </div>
+      <ImageUploadField
+        label="Ảnh popup (không bắt buộc)"
+        value={watch("imageUrl") ?? ""}
+        onChange={(url) => setValue("imageUrl", url)}
+        folder="popups"
+      />
 
       <div className="space-y-1">
         <label className="text-sm font-semibold text-heading">Nội dung</label>

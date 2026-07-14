@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { useCreateCategory, useUpdateCategory } from "../hooks";
 import type { Category } from "../types";
 
@@ -27,6 +28,8 @@ export function CategoryForm({ category }: { category?: Category }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -74,14 +77,12 @@ export function CategoryForm({ category }: { category?: Category }) {
         />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">URL ảnh</label>
-        <input
-          {...register("imageUrl")}
-          placeholder="https://..."
-          className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
-        />
-      </div>
+      <ImageUploadField
+        label="Ảnh danh mục"
+        value={watch("imageUrl") ?? ""}
+        onChange={(url) => setValue("imageUrl", url)}
+        folder="categories"
+      />
 
       <div className="space-y-1">
         <label className="text-sm font-semibold text-heading">Thứ tự hiển thị</label>

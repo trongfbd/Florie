@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createProduct, deleteProduct, fetchProduct, fetchProducts, updateProduct } from "./api";
+import {
+  addProductImage,
+  createProduct,
+  deleteProduct,
+  deleteProductImage,
+  fetchProduct,
+  fetchProducts,
+  updateProduct,
+} from "./api";
 import type { ProductFormInput } from "./types";
 
 const KEY = ["admin-products"];
@@ -40,6 +48,22 @@ export function useDeleteProduct() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteProduct(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useAddProductImage(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => addProductImage(productId, file),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useDeleteProductImage(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (imageId: string) => deleteProductImage(productId, imageId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
   });
 }

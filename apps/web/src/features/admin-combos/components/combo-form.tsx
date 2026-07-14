@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Trash2 } from "lucide-react";
 import { z } from "zod";
 import { useProductOptions } from "@/features/admin-products/hooks";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { useCreateCombo, useUpdateCombo } from "../hooks";
 import type { Combo, ComboItemInput } from "../types";
 
@@ -36,6 +37,8 @@ export function ComboForm({ combo }: { combo?: Combo }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -102,14 +105,12 @@ export function ComboForm({ combo }: { combo?: Combo }) {
         />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">URL ảnh</label>
-        <input
-          {...register("imageUrl")}
-          placeholder="https://..."
-          className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
-        />
-      </div>
+      <ImageUploadField
+        label="Ảnh combo"
+        value={watch("imageUrl") ?? ""}
+        onChange={(url) => setValue("imageUrl", url)}
+        folder="combos"
+      />
 
       <div className="space-y-1">
         <label className="text-sm font-semibold text-heading">Giá bán combo (VND)</label>

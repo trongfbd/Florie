@@ -1,5 +1,12 @@
 export type ProductStatus = "DRAFT" | "ACTIVE" | "OUT_OF_STOCK" | "ARCHIVED";
 
+export interface ProductImage {
+  id: string;
+  url: string;
+  altText: string | null;
+  displayOrder: number;
+}
+
 export interface ProductListItem {
   id: string;
   name: string;
@@ -12,11 +19,12 @@ export interface ProductListItem {
   images: { url: string }[];
 }
 
-export interface ProductDetail extends ProductListItem {
+export interface ProductDetail extends Omit<ProductListItem, "images"> {
   description: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   costPrice: number | null;
+  images: ProductImage[];
 }
 
 export interface ProductFormInput {

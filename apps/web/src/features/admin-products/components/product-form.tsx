@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useCategories } from "@/features/admin-categories/hooks";
 import { AiGenerateButton } from "@/features/admin-ai/components/ai-generate-button";
 import { useCreateProduct, useUpdateProduct } from "../hooks";
+import { ProductImagesManager } from "./product-images-manager";
 import type { ProductDetail, ProductStatus } from "../types";
 
 const STATUS_OPTIONS: ProductStatus[] = ["DRAFT", "ACTIVE", "OUT_OF_STOCK", "ARCHIVED"];
@@ -99,6 +100,14 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
         {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
       </div>
 
+      {product ? (
+        <ProductImagesManager productId={product.id} images={product.images} />
+      ) : (
+        <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-foreground/60">
+          Lưu sản phẩm trước, sau đó quay lại đây để thêm ảnh.
+        </p>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="text-sm font-semibold text-heading">Giá gốc (VND)</label>
@@ -183,7 +192,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
 
       {product && (
         <p className="text-xs text-foreground/50">
-          Quản lý ảnh và công thức bó hoa (BOM) tạm thời thực hiện qua Swagger — sẽ có giao diện riêng sau.
+          Công thức bó hoa (BOM) tạm thời thực hiện qua Swagger — sẽ có giao diện riêng sau.
         </p>
       )}
     </form>

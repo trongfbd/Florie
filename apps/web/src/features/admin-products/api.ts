@@ -1,5 +1,5 @@
 import { adminApiClient } from "@/lib/admin-api-client";
-import type { PaginatedProducts, ProductDetail, ProductFormInput } from "./types";
+import type { PaginatedProducts, ProductDetail, ProductFormInput, ProductImage } from "./types";
 
 export async function fetchProducts(
   query: { page?: number; search?: string; limit?: number },
@@ -25,4 +25,17 @@ export async function updateProduct(id: string, input: Partial<ProductFormInput>
 
 export async function deleteProduct(id: string): Promise<void> {
   await adminApiClient.delete(`/api/v1/products/${id}`);
+}
+
+export async function addProductImage(productId: string, file: File): Promise<ProductImage> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await adminApiClient.post<ProductImage>(`/api/v1/products/${productId}/images`, formData, {
+    timeout: 60_000,
+  });
+  return data;
+}
+
+export async function deleteProductImage(productId: string, imageId: string): Promise<void> {
+  await adminApiClient.delete(`/api/v1/products/${productId}/images/${imageId}`);
 }

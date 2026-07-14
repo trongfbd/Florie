@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { useCreateBanner, useUpdateBanner } from "../hooks";
 import type { Banner, BannerPosition } from "../types";
 
@@ -35,6 +36,8 @@ export function BannerForm({ banner }: { banner?: Banner }) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -66,11 +69,11 @@ export function BannerForm({ banner }: { banner?: Banner }) {
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-heading">URL ảnh</label>
-        <input
-          {...register("imageUrl")}
-          placeholder="https://..."
-          className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
+        <ImageUploadField
+          label="Ảnh banner"
+          value={watch("imageUrl") ?? ""}
+          onChange={(url) => setValue("imageUrl", url, { shouldValidate: true })}
+          folder="banners"
         />
         {errors.imageUrl && <p className="text-xs text-destructive">{errors.imageUrl.message}</p>}
       </div>
