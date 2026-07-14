@@ -20,6 +20,8 @@ import {
   Sparkles,
   CalendarDays,
   DatabaseBackup,
+  Warehouse,
+  Truck,
 } from "lucide-react";
 import { useAdminAuthStore } from "@/stores/admin-auth-store";
 
@@ -40,6 +42,13 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/admin/lich-giao-hang", label: "Lịch giao hàng", icon: CalendarDays },
       { href: "/admin/san-pham", label: "Sản phẩm", icon: Package },
       { href: "/admin/danh-muc", label: "Danh mục", icon: Tags },
+    ],
+  },
+  {
+    label: "Kho hàng",
+    items: [
+      { href: "/admin/vat-tu", label: "Vật tư", icon: Warehouse },
+      { href: "/admin/nha-cung-cap", label: "Nhà cung cấp", icon: Truck },
     ],
   },
   {

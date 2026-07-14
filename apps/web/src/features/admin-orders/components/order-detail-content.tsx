@@ -7,6 +7,7 @@ import { formatVnd } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { useChangeOrderStatus, useOrder } from "../hooks";
 import { OrderStatusBadge } from "./order-status-badge";
+import { ShippingInfoSection } from "./shipping-info-section";
 import type { OrderStatus } from "../types";
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -148,38 +149,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
         </div>
 
         <div className="space-y-6">
-          <section className="space-y-2 rounded-brand border-2 border-secondary bg-white p-5 text-sm">
-            <h2 className="font-display text-lg font-bold text-heading">Giao hàng</h2>
-            <p>
-              <span className="text-foreground/50">Người nhận: </span>
-              <span className="font-medium text-heading">{order.recipientName}</span>
-            </p>
-            <p>
-              <span className="text-foreground/50">SĐT: </span>
-              {order.recipientPhone}
-            </p>
-            <p>
-              <span className="text-foreground/50">Địa chỉ: </span>
-              {order.deliveryAddress}
-            </p>
-            <p>
-              <span className="text-foreground/50">Ngày giao: </span>
-              {new Date(order.deliveryDate).toLocaleDateString("vi-VN")}
-              {order.deliveryTime ? ` (${order.deliveryTime})` : ""}
-            </p>
-            {order.cardMessage && (
-              <p>
-                <span className="text-foreground/50">Lời nhắn thiệp: </span>
-                {order.cardMessage}
-              </p>
-            )}
-            {order.note && (
-              <p>
-                <span className="text-foreground/50">Ghi chú: </span>
-                {order.note}
-              </p>
-            )}
-          </section>
+          <ShippingInfoSection order={order} />
 
           <section className="space-y-2 rounded-brand border-2 border-secondary bg-white p-5 text-sm">
             <h2 className="font-display text-lg font-bold text-heading">Khách hàng</h2>

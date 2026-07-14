@@ -66,3 +66,13 @@ export interface PaginatedOrders {
   data: OrderListItem[];
   meta: { page: number; limit: number; total: number; totalPages: number };
 }
+
+export interface UpdateOrderInput {
+  recipientName?: string;
+  recipientPhone?: string;
+  deliveryAddress?: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
+  cardMessage?: string;
+  note?: string;
+}

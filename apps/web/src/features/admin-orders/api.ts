@@ -1,5 +1,5 @@
 import { adminApiClient } from "@/lib/admin-api-client";
-import type { OrderDetail, OrderStatus, PaginatedOrders, QueryOrdersInput } from "./types";
+import type { OrderDetail, OrderStatus, PaginatedOrders, QueryOrdersInput, UpdateOrderInput } from "./types";
 
 export async function fetchOrders(query: QueryOrdersInput): Promise<PaginatedOrders> {
   const { data } = await adminApiClient.get<PaginatedOrders>("/api/v1/orders", { params: query });
@@ -20,5 +20,10 @@ export async function changeOrderStatus(
     toStatus,
     note,
   });
+  return data;
+}
+
+export async function updateOrder(id: string, input: UpdateOrderInput): Promise<OrderDetail> {
+  const { data } = await adminApiClient.patch<OrderDetail>(`/api/v1/orders/${id}`, input);
   return data;
 }
