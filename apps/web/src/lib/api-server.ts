@@ -30,8 +30,12 @@ async function apiFetch<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function getCategories(): Promise<CategorySummary[]> {
-  return apiFetch<CategorySummary[]>('/storefront/categories');
+export async function getCategories(): Promise<CategorySummary[]> {
+  try {
+    return await apiFetch<CategorySummary[]>('/storefront/categories');
+  } catch {
+    return [];
+  }
 }
 
 export async function getCategoryBySlug(slug: string): Promise<CategorySummary | null> {
@@ -42,7 +46,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategorySummary |
   }
 }
 
-export function getProducts(
+export async function getProducts(
   query: StorefrontProductQuery = {},
 ): Promise<PaginatedResult<ProductListItem>> {
   const params = new URLSearchParams();
@@ -53,7 +57,13 @@ export function getProducts(
   });
   const qs = params.toString();
 
-  return apiFetch<PaginatedResult<ProductListItem>>(`/storefront/products${qs ? `?${qs}` : ''}`);
+  try {
+    return await apiFetch<PaginatedResult<ProductListItem>>(
+      `/storefront/products${qs ? `?${qs}` : ''}`,
+    );
+  } catch {
+    return { data: [], meta: { page: 1, limit: query.limit ?? 20, total: 0, totalPages: 0 } };
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
@@ -64,8 +74,12 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   }
 }
 
-export function getRelatedProducts(slug: string): Promise<ProductListItem[]> {
-  return apiFetch<ProductListItem[]>(`/storefront/products/${slug}/related`);
+export async function getRelatedProducts(slug: string): Promise<ProductListItem[]> {
+  try {
+    return await apiFetch<ProductListItem[]>(`/storefront/products/${slug}/related`);
+  } catch {
+    return [];
+  }
 }
 
 export async function getReviews(slug: string): Promise<Review[]> {
@@ -76,8 +90,12 @@ export async function getReviews(slug: string): Promise<Review[]> {
   }
 }
 
-export function getCombos(): Promise<Combo[]> {
-  return apiFetch<Combo[]>('/storefront/combos');
+export async function getCombos(): Promise<Combo[]> {
+  try {
+    return await apiFetch<Combo[]>('/storefront/combos');
+  } catch {
+    return [];
+  }
 }
 
 export async function getComboBySlug(slug: string): Promise<Combo | null> {
@@ -104,13 +122,19 @@ export async function getBanners(position: BannerPosition = 'HOME'): Promise<Ban
   }
 }
 
-export function getBlogs(query: { page?: number; search?: string } = {}): Promise<BlogListResult> {
+export async function getBlogs(
+  query: { page?: number; search?: string } = {},
+): Promise<BlogListResult> {
   const params = new URLSearchParams();
   if (query.page) params.set('page', String(query.page));
   if (query.search) params.set('search', query.search);
   const qs = params.toString();
 
-  return apiFetch<BlogListResult>(`/storefront/blogs${qs ? `?${qs}` : ''}`);
+  try {
+    return await apiFetch<BlogListResult>(`/storefront/blogs${qs ? `?${qs}` : ''}`);
+  } catch {
+    return { data: [], meta: { page: query.page ?? 1, limit: 20, total: 0, totalPages: 0 } };
+  }
 }
 
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {

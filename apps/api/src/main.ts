@@ -1,4 +1,5 @@
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -9,6 +10,14 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   app.setGlobalPrefix('api/v1');
+  app.use(
+    helmet({
+      // The API only ever serves JSON/file downloads, and Swagger UI
+      // (which needs inline scripts/styles) — a strict default CSP would
+      // break Swagger, so leave CSP off here rather than hand-tune it.
+      contentSecurityPolicy: false,
+    }),
+  );
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({

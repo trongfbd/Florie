@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
+import { SITE_NAME, SITE_URL } from "@/lib/site-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,8 +20,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: "Florie — Flower Shop", template: "%s | Florie" },
   description: "Mỗi bó hoa, một câu chuyện.",
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "vi_VN",
+    title: "Florie — Flower Shop",
+    description: "Mỗi bó hoa, một câu chuyện.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Florie — Flower Shop",
+    description: "Mỗi bó hoa, một câu chuyện.",
+  },
 };
 
 export default function RootLayout({

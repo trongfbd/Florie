@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Notification, NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { buildPaginatedResult, PaginatedResult } from '../common/dto/paginated-result.dto';
+import {
+  buildPaginatedResult,
+  PaginatedResult,
+} from '../common/dto/paginated-result.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
 
 @Injectable()
@@ -15,10 +18,14 @@ export class NotificationsService {
     message: string,
     relatedEntityId?: string,
   ): Promise<Notification> {
-    return this.prisma.notification.create({ data: { type, title, message, relatedEntityId } });
+    return this.prisma.notification.create({
+      data: { type, title, message, relatedEntityId },
+    });
   }
 
-  async findAll(query: QueryNotificationDto): Promise<PaginatedResult<Notification>> {
+  async findAll(
+    query: QueryNotificationDto,
+  ): Promise<PaginatedResult<Notification>> {
     const where: Prisma.NotificationWhereInput = {
       ...(query.unreadOnly && { isRead: false }),
     };
@@ -41,14 +48,22 @@ export class NotificationsService {
   }
 
   async markAsRead(id: string): Promise<Notification> {
-    const notification = await this.prisma.notification.findUnique({ where: { id } });
+    const notification = await this.prisma.notification.findUnique({
+      where: { id },
+    });
     if (!notification) {
       throw new NotFoundException('Không tìm thấy thông báo');
     }
-    return this.prisma.notification.update({ where: { id }, data: { isRead: true } });
+    return this.prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
   }
 
   async markAllAsRead(): Promise<void> {
-    await this.prisma.notification.updateMany({ where: { isRead: false }, data: { isRead: true } });
+    await this.prisma.notification.updateMany({
+      where: { isRead: false },
+      data: { isRead: true },
+    });
   }
 }

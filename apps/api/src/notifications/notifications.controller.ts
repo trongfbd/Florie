@@ -1,4 +1,12 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { QueryNotificationDto } from './dto/query-notification.dto';
