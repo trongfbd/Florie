@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Printer } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { useChangeOrderStatus, useOrder } from "../hooks";
@@ -44,7 +46,17 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
           <h1 className="font-display text-2xl font-bold text-heading">{order.orderNumber}</h1>
           <p className="mt-1 text-sm text-foreground/60">Đặt lúc {formatDateTime(order.createdAt)}</p>
         </div>
-        <OrderStatusBadge status={order.status} />
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/admin/hoa-don/${order.id}`}
+            target="_blank"
+            className="flex items-center gap-2 rounded-full border-2 border-secondary px-4 py-2 text-sm font-semibold text-heading transition-colors hover:bg-secondary"
+          >
+            <Printer size={16} />
+            In hóa đơn
+          </Link>
+          <OrderStatusBadge status={order.status} />
+        </div>
       </div>
 
       {changeStatus.isError && (

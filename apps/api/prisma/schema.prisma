@@ -518,6 +518,28 @@ model SiteSettings {
   updatedAt          DateTime @updatedAt
 }
 
+/// Singleton, same lazy-create-on-first-access pattern as SiteSettings.
+/// Company/tax fields are used on the printable order invoice as soon as
+/// they're filled in. The eInvoice* fields are placeholders only — no
+/// provider API integration (Viettel/VNPT/MISA/M-Invoice, XML signing,
+/// submission to the tax authority) exists yet; they just reserve the shape
+/// so that work doesn't require a schema change when it's picked up later.
+model InvoiceSettings {
+  id                   String   @id @default(cuid())
+  companyLegalName     String?
+  taxCode              String? // Mã số thuế (MST)
+  companyAddress       String?
+  companyPhone         String?
+  companyEmail         String?
+  eInvoiceProvider     String? // e.g. "VIETTEL" | "VNPT" | "MISA" | "M-INVOICE" — free text, no integration yet
+  eInvoiceApiEndpoint  String?
+  eInvoiceApiKey       String?
+  eInvoiceApiSecret    String?
+  eInvoiceTemplateCode String? // Mẫu số hóa đơn
+  eInvoiceSeriesSymbol String? // Ký hiệu hóa đơn
+  updatedAt            DateTime @updatedAt
+}
+
 // ============================================================
 // INVENTORY (Kho / Vật tư / BOM)
 // ============================================================

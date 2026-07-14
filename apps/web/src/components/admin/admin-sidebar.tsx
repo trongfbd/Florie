@@ -51,7 +51,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/admin/banner", label: "Banner", icon: ImageIcon },
       { href: "/admin/blog", label: "Blog", icon: Newspaper },
       { href: "/admin/popup", label: "Popup", icon: Bell },
-      { href: "/admin/cai-dat", label: "Cài đặt Pixel", icon: Settings },
+      { href: "/admin/cai-dat", label: "Cài đặt", icon: Settings },
     ],
   },
   {
