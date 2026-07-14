@@ -1,13 +1,21 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { OrderStatus } from '@prisma/client';
-import { IsDateString, IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 const SORTABLE_FIELDS = ['createdAt', 'deliveryDate', 'total'] as const;
 export type OrderSortField = (typeof SORTABLE_FIELDS)[number];
 
 export class QueryOrderDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ description: 'Search by order number, recipient name, or phone' })
+  @ApiPropertyOptional({
+    description: 'Search by order number, recipient name, or phone',
+  })
   @IsOptional()
   @IsString()
   search?: string;
@@ -21,6 +29,13 @@ export class QueryOrderDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   customerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter orders that applied this voucher',
+  })
+  @IsOptional()
+  @IsString()
+  voucherId?: string;
 
   @ApiPropertyOptional({ description: 'Delivery date range start (inclusive)' })
   @IsOptional()

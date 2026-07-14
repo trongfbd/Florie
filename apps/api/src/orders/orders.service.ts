@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   OrderSource,
   OrderStatus,
@@ -8,7 +13,10 @@ import {
   ProductStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { buildPaginatedResult, PaginatedResult } from '../common/dto/paginated-result.dto';
+import {
+  buildPaginatedResult,
+  PaginatedResult,
+} from '../common/dto/paginated-result.dto';
 import { computeVoucherDiscount } from '../common/utils/voucher-discount.util';
 import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -33,8 +41,12 @@ const ORDER_LIST_INCLUDE = {
   customer: { select: { id: true, name: true, phone: true } },
 } satisfies Prisma.OrderInclude;
 
-type OrderDetail = Prisma.OrderGetPayload<{ include: typeof ORDER_DETAIL_INCLUDE }>;
-type OrderListItem = Prisma.OrderGetPayload<{ include: typeof ORDER_LIST_INCLUDE }>;
+type OrderDetail = Prisma.OrderGetPayload<{
+  include: typeof ORDER_DETAIL_INCLUDE;
+}>;
+type OrderListItem = Prisma.OrderGetPayload<{
+  include: typeof ORDER_LIST_INCLUDE;
+}>;
 
 interface ResolvedOrderItem {
   productId?: string;
@@ -67,7 +79,10 @@ export class OrdersService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(dto: CreateOrderDto, actorUserId?: string): Promise<OrderDetail> {
+  async create(
+    dto: CreateOrderDto,
+    actorUserId?: string,
+  ): Promise<OrderDetail> {
     if (!dto.customerId && !(dto.guestName && dto.guestPhone)) {
       throw new BadRequestException(
         'Cần chọn khách hàng có sẵn (customerId) hoặc nhập tên và SĐT khách vãng lai (guestName/guestPhone)',
@@ -84,8 +99,12 @@ export class OrdersService {
       }
     }
 
-    const { items, subtotal, flashSaleIncrements } = await this.resolveOrderItems(dto.items);
-    const { voucherId, discountAmount } = await this.resolveVoucher(dto.voucherCode, subtotal);
+    const { items, subtotal, flashSaleIncrements } =
+      await this.resolveOrderItems(dto.items);
+    const { voucherId, discountAmount } = await this.resolveVoucher(
+      dto.voucherCode,
+      subtotal,
+    );
     const shippingFee = dto.shippingFee ?? 0;
     const total = Math.max(0, subtotal + shippingFee - discountAmount);
     const orderNumber = await this.generateOrderNumber();
@@ -118,7 +137,9 @@ export class OrdersService {
               {
                 toStatus: OrderStatus.NEW,
                 changedById: actorUserId,
-                note: actorUserId ? 'Tạo đơn hàng' : 'Khách đặt hàng qua website',
+                note: actorUserId
+                  ? 'Tạo đơn hàng'
+                  : 'Khách đặt hàng qua website',
               },
             ],
           },
@@ -126,7 +147,10 @@ export class OrdersService {
       });
 
       if (voucherId) {
-        await tx.voucher.update({ where: { id: voucherId }, data: { usedCount: { increment: 1 } } });
+        await tx.voucher.update({
+          where: { id: voucherId },
+          data: { usedCount: { increment: 1 } },
+        });
       }
 
       for (const increment of flashSaleIncrements) {
@@ -153,6 +177,7 @@ export class OrdersService {
     const where: Prisma.OrderWhereInput = {
       ...(query.status && { status: query.status }),
       ...(query.customerId && { customerId: query.customerId }),
+      ...(query.voucherId && { voucherId: query.voucherId }),
       ...(query.search && {
         OR: [
           { orderNumber: { contains: query.search, mode: 'insensitive' } },
@@ -162,7 +187,9 @@ export class OrdersService {
       }),
       ...((query.deliveryDateFrom || query.deliveryDateTo) && {
         deliveryDate: {
-          ...(query.deliveryDateFrom && { gte: new Date(query.deliveryDateFrom) }),
+          ...(query.deliveryDateFrom && {
+            gte: new Date(query.deliveryDateFrom),
+          }),
           ...(query.deliveryDateTo && { lte: new Date(query.deliveryDateTo) }),
         },
       }),
@@ -183,7 +210,10 @@ export class OrdersService {
   }
 
   async findOne(id: string): Promise<OrderDetail> {
-    const order = await this.prisma.order.findUnique({ where: { id }, include: ORDER_DETAIL_INCLUDE });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: ORDER_DETAIL_INCLUDE,
+    });
     if (!order) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
@@ -193,7 +223,10 @@ export class OrdersService {
   async update(id: string, dto: UpdateOrderDto): Promise<OrderDetail> {
     const order = await this.findOne(id);
 
-    if (order.status !== OrderStatus.NEW && order.status !== OrderStatus.CONFIRMED) {
+    if (
+      order.status !== OrderStatus.NEW &&
+      order.status !== OrderStatus.CONFIRMED
+    ) {
       throw new ConflictException(
         'Chỉ có thể sửa thông tin đơn khi đang ở trạng thái Đơn mới hoặc Đã xác nhận',
       );
@@ -209,8 +242,15 @@ export class OrdersService {
     });
   }
 
-  async changeStatus(id: string, dto: ChangeOrderStatusDto, actorUserId: string): Promise<OrderDetail> {
-    const order = await this.prisma.order.findUnique({ where: { id }, include: { items: true } });
+  async changeStatus(
+    id: string,
+    dto: ChangeOrderStatusDto,
+    actorUserId: string,
+  ): Promise<OrderDetail> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
     if (!order) {
       throw new NotFoundException('Không tìm thấy đơn hàng');
     }
@@ -259,34 +299,51 @@ export class OrdersService {
     return this.findOne(id);
   }
 
-  private async resolveOrderItems(
-    items: CreateOrderItemDto[],
-  ): Promise<{ items: ResolvedOrderItem[]; subtotal: number; flashSaleIncrements: FlashSaleIncrement[] }> {
+  private async resolveOrderItems(items: CreateOrderItemDto[]): Promise<{
+    items: ResolvedOrderItem[];
+    subtotal: number;
+    flashSaleIncrements: FlashSaleIncrement[];
+  }> {
     let subtotal = 0;
     const resolved: ResolvedOrderItem[] = [];
     const flashSaleIncrements: FlashSaleIncrement[] = [];
 
     for (const item of items) {
       if (item.productId && item.comboId) {
-        throw new BadRequestException('Mỗi mục chỉ được chọn 1 trong 2: sản phẩm hoặc combo');
+        throw new BadRequestException(
+          'Mỗi mục chỉ được chọn 1 trong 2: sản phẩm hoặc combo',
+        );
       }
       if (!item.productId && !item.comboId) {
         throw new BadRequestException('Mỗi mục phải có productId hoặc comboId');
       }
 
       if (item.productId) {
-        const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
+        const product = await this.prisma.product.findUnique({
+          where: { id: item.productId },
+        });
         if (!product) {
-          throw new NotFoundException(`Không tìm thấy sản phẩm ${item.productId}`);
+          throw new NotFoundException(
+            `Không tìm thấy sản phẩm ${item.productId}`,
+          );
         }
         if (product.status === ProductStatus.ARCHIVED) {
-          throw new BadRequestException(`Sản phẩm "${product.name}" đã ngừng kinh doanh`);
+          throw new BadRequestException(
+            `Sản phẩm "${product.name}" đã ngừng kinh doanh`,
+          );
         }
 
-        const flashSaleItem = await this.findActiveFlashSaleItem(product.id, item.quantity);
-        const unitPrice = flashSaleItem?.salePrice ?? product.salePrice ?? product.basePrice;
+        const flashSaleItem = await this.findActiveFlashSaleItem(
+          product.id,
+          item.quantity,
+        );
+        const unitPrice =
+          flashSaleItem?.salePrice ?? product.salePrice ?? product.basePrice;
         if (flashSaleItem) {
-          flashSaleIncrements.push({ flashSaleItemId: flashSaleItem.id, quantity: item.quantity });
+          flashSaleIncrements.push({
+            flashSaleItemId: flashSaleItem.id,
+            quantity: item.quantity,
+          });
         }
 
         resolved.push({
@@ -298,12 +355,16 @@ export class OrdersService {
         });
         subtotal += unitPrice * item.quantity;
       } else {
-        const combo = await this.prisma.combo.findUnique({ where: { id: item.comboId } });
+        const combo = await this.prisma.combo.findUnique({
+          where: { id: item.comboId },
+        });
         if (!combo) {
           throw new NotFoundException(`Không tìm thấy combo ${item.comboId}`);
         }
         if (!combo.isActive) {
-          throw new BadRequestException(`Combo "${combo.name}" đã ngừng kinh doanh`);
+          throw new BadRequestException(
+            `Combo "${combo.name}" đã ngừng kinh doanh`,
+          );
         }
         resolved.push({
           comboId: combo.id,
@@ -333,16 +394,24 @@ export class OrdersService {
     const candidates = await this.prisma.flashSaleItem.findMany({
       where: {
         productId,
-        flashSale: { isActive: true, startAt: { lte: now }, endAt: { gte: now } },
+        flashSale: {
+          isActive: true,
+          startAt: { lte: now },
+          endAt: { gte: now },
+        },
       },
       orderBy: { flashSale: { endAt: 'asc' } },
     });
 
     const withCapacity = candidates.find(
-      (item) => item.quantityLimit === null || item.soldQuantity + requestedQuantity <= item.quantityLimit,
+      (item) =>
+        item.quantityLimit === null ||
+        item.soldQuantity + requestedQuantity <= item.quantityLimit,
     );
 
-    return withCapacity ? { id: withCapacity.id, salePrice: withCapacity.salePrice } : null;
+    return withCapacity
+      ? { id: withCapacity.id, salePrice: withCapacity.salePrice }
+      : null;
   }
 
   private async resolveVoucher(
@@ -357,7 +426,9 @@ export class OrdersService {
     // stored uppercase (see VouchersService.create/update), and the storefront's
     // voucher-preview endpoint already uppercases before lookup. Skipping this
     // here let a case mismatch pass preview but fail at real order creation.
-    const voucher = await this.prisma.voucher.findUnique({ where: { code: code.trim().toUpperCase() } });
+    const voucher = await this.prisma.voucher.findUnique({
+      where: { code: code.trim().toUpperCase() },
+    });
     if (!voucher) {
       throw new BadRequestException('Voucher không hợp lệ');
     }

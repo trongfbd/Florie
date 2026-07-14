@@ -7,8 +7,10 @@ export interface OrderListItem {
   paymentStatus: "UNPAID" | "PAID" | "REFUNDED";
   paymentMethod: "COD" | "ONLINE";
   total: number;
+  discountAmount: number;
   recipientName: string;
   recipientPhone: string;
+  guestName: string | null;
   deliveryDate: string;
   customer: { id: string; name: string; phone: string | null } | null;
   createdAt: string;
@@ -52,6 +54,8 @@ export interface QueryOrdersInput {
   limit?: number;
   search?: string;
   status?: OrderStatus;
+  customerId?: string;
+  voucherId?: string;
   deliveryDateFrom?: string;
   deliveryDateTo?: string;
   sortBy?: "createdAt" | "deliveryDate" | "total";
