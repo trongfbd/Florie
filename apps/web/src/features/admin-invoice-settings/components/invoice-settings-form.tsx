@@ -39,9 +39,23 @@ export function InvoiceSettingsForm() {
 
   useEffect(() => {
     if (settings) {
-      reset(
-        Object.fromEntries(Object.entries(settings).map(([key, value]) => [key, value ?? ""])) as InvoiceSettingsFormInput,
-      );
+      // List fields explicitly (not a blanket Object.entries(settings) spread) —
+      // the real API response also carries `id`/`updatedAt`, which aren't part
+      // of the update DTO and would get rejected by the backend's
+      // forbidNonWhitelisted validation if they leaked into the submit payload.
+      reset({
+        companyLegalName: settings.companyLegalName ?? "",
+        taxCode: settings.taxCode ?? "",
+        companyAddress: settings.companyAddress ?? "",
+        companyPhone: settings.companyPhone ?? "",
+        companyEmail: settings.companyEmail ?? "",
+        eInvoiceProvider: settings.eInvoiceProvider ?? "",
+        eInvoiceApiEndpoint: settings.eInvoiceApiEndpoint ?? "",
+        eInvoiceApiKey: settings.eInvoiceApiKey ?? "",
+        eInvoiceApiSecret: settings.eInvoiceApiSecret ?? "",
+        eInvoiceTemplateCode: settings.eInvoiceTemplateCode ?? "",
+        eInvoiceSeriesSymbol: settings.eInvoiceSeriesSymbol ?? "",
+      });
     }
   }, [settings, reset]);
 
