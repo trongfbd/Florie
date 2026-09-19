@@ -31,7 +31,10 @@ services:
       retries: 10
 
   minio:
-    image: minio/minio:latest
+    # quay.io, not Docker Hub's minio/minio -- MinIO Inc. restricted that repo
+    # to require a paid login at some point after this file was written;
+    # quay.io/minio/* remains freely public. Same for minio-init below.
+    image: quay.io/minio/minio:latest
     container_name: florie-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -47,7 +50,7 @@ services:
       retries: 10
 
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     container_name: florie-minio-init
     depends_on:
       minio:
