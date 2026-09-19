@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const PASSWORD_SALT_ROUNDS = 10;
 
 async function main() {
-  console.log('Seeding Florie database...');
+  console.log('Seeding Bèo Flower Corner database...');
 
   // --- Users (Admin / Staff) ---
   const adminPasswordHash = await bcrypt.hash('Florie@Admin123', PASSWORD_SALT_ROUNDS);
@@ -18,7 +18,7 @@ async function main() {
     create: {
       email: 'admin@florie.vn',
       passwordHash: adminPasswordHash,
-      name: 'Florie Admin',
+      name: 'Bèo Flower Corner Admin',
       role: UserRole.ADMIN,
     },
   });
@@ -29,7 +29,7 @@ async function main() {
     create: {
       email: 'staff@florie.vn',
       passwordHash: staffPasswordHash,
-      name: 'Florie Staff',
+      name: 'Bèo Flower Corner Staff',
       role: UserRole.STAFF,
     },
   });
@@ -118,7 +118,7 @@ async function main() {
       name: 'Hoa Sinh Nhật',
       slug: 'hoa-sinh-nhat',
       description: 'Các mẫu hoa dành tặng sinh nhật',
-      seoTitle: 'Hoa Sinh Nhật Đẹp - Florie',
+      seoTitle: 'Hoa Sinh Nhật Đẹp - Bèo Flower Corner',
       seoDescription: 'Bó hoa sinh nhật tươi, giao trong ngày.',
       displayOrder: 1,
     },

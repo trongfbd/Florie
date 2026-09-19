@@ -18,7 +18,7 @@ export async function Header() {
       <Container className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center justify-between gap-8">
           <Link href="/" className="font-display text-2xl font-bold tracking-tight text-accent">
-            Florie
+            Bèo Flower Corner
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-semibold text-heading/80 sm:flex">

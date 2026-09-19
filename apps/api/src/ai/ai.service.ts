@@ -8,7 +8,7 @@ import { GenerateContentDto, GenerateContentType } from './dto/generate-content.
 import { ChatMessageDto } from './dto/chat-message.dto';
 
 const SYSTEM_PREAMBLE =
-  'Bạn là trợ lý AI nội bộ cho Florie, một tiệm hoa tươi tại Việt Nam. Luôn trả lời bằng tiếng Việt, ngắn gọn, tự nhiên, đúng trọng tâm.';
+  'Bạn là trợ lý AI nội bộ cho Bèo Flower Corner, một tiệm hoa tươi tại Việt Nam. Luôn trả lời bằng tiếng Việt, ngắn gọn, tự nhiên, đúng trọng tâm.';
 
 @Injectable()
 export class AiService {

@@ -14,7 +14,7 @@ export function OrderConfirmation({ orderNumber }: { orderNumber: string }) {
       <CheckCircle2 className="mx-auto text-success" size={64} />
       <h1 className="font-display text-3xl font-bold text-heading">Đặt hàng thành công!</h1>
       <p className="text-foreground/70">
-        Cảm ơn bạn đã đặt hoa tại Florie. Mã đơn hàng của bạn là:
+        Cảm ơn bạn đã đặt hoa tại Bèo Flower Corner. Mã đơn hàng của bạn là:
       </p>
       <p className="font-display text-2xl font-bold text-accent">{orderNumber}</p>
 

@@ -7,7 +7,7 @@ import { Container } from "@/components/layout/container";
 
 export const metadata: Metadata = {
   title: "Blog",
-  description: "Mẹo cắm hoa, bảo quản hoa tươi và câu chuyện từ Florie.",
+  description: "Mẹo cắm hoa, bảo quản hoa tươi và câu chuyện từ Bèo Flower Corner.",
 };
 
 interface BlogListPageProps {
@@ -22,8 +22,8 @@ export default async function BlogListPage({ searchParams }: BlogListPageProps) 
   return (
     <Container className="space-y-8 py-12">
       <FadeIn className="text-center">
-        <h1 className="font-display text-4xl font-bold text-heading">Blog Florie</h1>
-        <p className="mt-2 text-foreground/70">Mẹo cắm hoa, bảo quản hoa tươi và câu chuyện từ Florie</p>
+        <h1 className="font-display text-4xl font-bold text-heading">Blog Bèo Flower Corner</h1>
+        <p className="mt-2 text-foreground/70">Mẹo cắm hoa, bảo quản hoa tươi và câu chuyện từ Bèo Flower Corner</p>
       </FadeIn>
 
       {result.data.length === 0 ? (

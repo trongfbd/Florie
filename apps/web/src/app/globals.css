@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 1.25rem; /* 20px — Florie brand brief: 16~24px */
+  --radius: 1.25rem; /* 20px — Bèo Flower Corner brand brief: 16~24px */
 
-  /* Florie brand palette mapped onto shadcn's semantic slots */
+  /* Bèo Flower Corner brand palette mapped onto shadcn's semantic slots */
   --background: #ffffff;
   --foreground: #444444;
   --heading: #2b1d22;

@@ -88,7 +88,7 @@ export function AdminSidebar() {
     <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-secondary bg-white sm:flex sm:flex-col">
       <div className="border-b border-secondary px-6 py-5">
         <Link href="/admin" className="font-display text-xl font-bold text-accent">
-          Florie Admin
+          Bèo Flower Corner Admin
         </Link>
       </div>
       <nav className="flex-1 space-y-5 p-3">

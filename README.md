@@ -1,4 +1,4 @@
-# Florie
+# Bèo Flower Corner
 Web bán hoa - Mỗi bó hoa, một câu chuyện.
 
 ## Cấu trúc dự án

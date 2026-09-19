@@ -28,7 +28,7 @@ export function ExportCsvButton() {
     const fromDate = summary.from.slice(0, 10);
     const toDate = summary.to.slice(0, 10);
 
-    rows.push(["Báo cáo Florie", `${fromDate} → ${toDate}`]);
+    rows.push(["Báo cáo Bèo Flower Corner", `${fromDate} → ${toDate}`]);
     rows.push([]);
 
     rows.push(["TỔNG QUAN"]);

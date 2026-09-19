@@ -23,13 +23,13 @@ export function BlogCard({ blog }: { blog: Blog }) {
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-foreground/40">Florie</div>
+          <div className="flex h-full items-center justify-center text-sm text-foreground/40">Bèo Flower Corner</div>
         )}
       </div>
       <div className="space-y-1.5 p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-accent">{formatDate(blog.publishedAt)}</p>
         <h3 className="line-clamp-2 font-display text-lg font-semibold text-heading">{blog.title}</h3>
-        <p className="text-sm text-foreground/60">Florie · {blog.author.name}</p>
+        <p className="text-sm text-foreground/60">Bèo Flower Corner · {blog.author.name}</p>
       </div>
     </Link>
   );

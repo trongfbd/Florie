@@ -9,7 +9,7 @@ export async function Footer() {
     <footer className="border-t border-primary bg-heading text-white">
       <Container className="grid grid-cols-2 gap-8 py-14 text-sm sm:grid-cols-4">
         <div className="col-span-2 space-y-3 sm:col-span-1">
-          <p className="font-display text-2xl font-bold text-primary">Florie</p>
+          <p className="font-display text-2xl font-bold text-primary">Bèo Flower Corner</p>
           <p className="text-white/60">Mỗi bó hoa, một câu chuyện.</p>
         </div>
 
@@ -58,7 +58,7 @@ export async function Footer() {
       </Container>
 
       <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-white/40">
-        © {new Date().getFullYear()} Florie. All rights reserved.
+        © {new Date().getFullYear()} Bèo Flower Corner. All rights reserved.
       </div>
     </footer>
   );

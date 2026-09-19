@@ -73,7 +73,7 @@ export function InvoiceSettingsForm() {
         <h3 className="text-sm font-bold uppercase tracking-wide text-foreground/50">
           Thông tin công ty (hiển thị trên hóa đơn)
         </h3>
-        <FormField label="Tên pháp lý công ty" name="companyLegalName" register={register} placeholder="VD: Công ty TNHH Florie" />
+        <FormField label="Tên pháp lý công ty" name="companyLegalName" register={register} placeholder="VD: Công ty TNHH Bèo Flower Corner" />
         <FormField label="Mã số thuế (MST)" name="taxCode" register={register} placeholder="VD: 0312345678" />
         <FormField label="Địa chỉ" name="companyAddress" register={register} />
         <div className="grid gap-4 sm:grid-cols-2">

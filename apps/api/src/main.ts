@@ -32,7 +32,7 @@ async function bootstrap() {
   });
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Florie API')
+    .setTitle('Bèo Flower Corner API')
     .setDescription('Flower Shop Management System — REST API')
     .setVersion('0.1.0')
     .addBearerAuth()
@@ -42,7 +42,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
-  logger.log(`Florie API ready at http://localhost:${port}/api/v1`);
+  logger.log(`Bèo Flower Corner API ready at http://localhost:${port}/api/v1`);
   logger.log(`Swagger docs at http://localhost:${port}/api/docs`);
 }
 

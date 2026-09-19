@@ -53,7 +53,7 @@ export default async function Home() {
         <Container className="relative z-10">
           <FadeIn className="max-w-xl space-y-6">
             <span className="inline-block rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white backdrop-blur-sm">
-              Florie · Luxury Flower Shop
+              Bèo Flower Corner · Luxury Flower Shop
             </span>
             <h1 className="font-display text-5xl font-bold leading-[1.1] text-white sm:text-7xl">
               Mỗi bó hoa,
@@ -140,7 +140,7 @@ export default async function Home() {
           <div className="flex items-end justify-between">
             <div>
               <h2 className="font-display text-4xl font-bold text-heading">Sản phẩm mới</h2>
-              <p className="mt-2 text-foreground/70">Vừa cập nhật tại Florie</p>
+              <p className="mt-2 text-foreground/70">Vừa cập nhật tại Bèo Flower Corner</p>
             </div>
             <Link
               href="/tim-kiem"

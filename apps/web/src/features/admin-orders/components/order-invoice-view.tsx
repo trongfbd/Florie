@@ -35,7 +35,7 @@ export function OrderInvoiceView({ orderId }: { orderId: string }) {
       <div className="rounded-brand border-2 border-secondary bg-white p-8 print:border-0 print:p-0 print:shadow-none">
         <div className="flex items-start justify-between gap-4 border-b-2 border-dashed border-secondary pb-6">
           <div>
-            <p className="font-display text-xl font-bold text-heading">{settings?.companyLegalName || "Florie"}</p>
+            <p className="font-display text-xl font-bold text-heading">{settings?.companyLegalName || "Bèo Flower Corner"}</p>
             {settings?.companyAddress && <p className="text-sm text-foreground/70">{settings.companyAddress}</p>}
             {settings?.companyPhone && <p className="text-sm text-foreground/70">SĐT: {settings.companyPhone}</p>}
             {settings?.companyEmail && <p className="text-sm text-foreground/70">Email: {settings.companyEmail}</p>}
