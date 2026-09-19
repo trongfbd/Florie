@@ -18,14 +18,24 @@ const STATUS_LABELS: Record<ProductStatus, string> = {
   ARCHIVED: "Ngừng kinh doanh",
 };
 
+// z.coerce.number() alone turns a blank input ("") into 0 (Number("") === 0),
+// not into "missing" — that silently saved salePrice/costPrice as 0 whenever
+// the field was left empty, which made the UI treat the product as "on sale
+// for 0đ" instead of falling back to basePrice. Preprocess blank strings to
+// undefined first so an empty field stays genuinely optional.
+const optionalPrice = z.preprocess(
+  (val) => (val === "" || val === undefined ? undefined : val),
+  z.coerce.number().min(0).optional(),
+);
+
 const schema = z.object({
   name: z.string().min(2, "Vui lòng nhập tên sản phẩm"),
   slug: z.string().optional(),
   description: z.string().optional(),
   categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
   basePrice: z.coerce.number().min(0, "Giá không hợp lệ"),
-  salePrice: z.coerce.number().min(0).optional().or(z.literal(NaN)),
-  costPrice: z.coerce.number().min(0).optional().or(z.literal(NaN)),
+  salePrice: optionalPrice,
+  costPrice: optionalPrice,
   color: z.string().optional(),
   status: z.enum(["DRAFT", "ACTIVE", "OUT_OF_STOCK", "ARCHIVED"]).optional(),
 });
@@ -65,12 +75,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
   const nameValue = watch("name");
 
   function onSubmit(values: FormValues) {
-    const payload = {
-      ...values,
-      salePrice: Number.isNaN(values.salePrice) ? undefined : values.salePrice,
-      costPrice: Number.isNaN(values.costPrice) ? undefined : values.costPrice,
-    };
-    mutation.mutate(payload, {
+    mutation.mutate(values, {
       onSuccess: (result) => {
         // New product: land on its own edit page next (not the list) so the
         // image manager below — which needs a real product id to attach
