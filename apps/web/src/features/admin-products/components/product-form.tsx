@@ -70,7 +70,15 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
       salePrice: Number.isNaN(values.salePrice) ? undefined : values.salePrice,
       costPrice: Number.isNaN(values.costPrice) ? undefined : values.costPrice,
     };
-    mutation.mutate(payload, { onSuccess: () => router.push("/admin/san-pham") });
+    mutation.mutate(payload, {
+      onSuccess: (result) => {
+        // New product: land on its own edit page next (not the list) so the
+        // image manager below — which needs a real product id to attach
+        // uploads to — is immediately available, no separate "save first,
+        // then come back" round trip.
+        router.push(product ? "/admin/san-pham" : `/admin/san-pham/${result.id}`);
+      },
+    });
   }
 
   return (
@@ -104,7 +112,7 @@ export function ProductForm({ product }: { product?: ProductDetail }) {
         <ProductImagesManager productId={product.id} images={product.images} />
       ) : (
         <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-foreground/60">
-          Lưu sản phẩm trước, sau đó quay lại đây để thêm ảnh.
+          Bấm Lưu để tạo sản phẩm — bạn sẽ được chuyển sang đây để thêm ảnh ngay sau đó.
         </p>
       )}
 

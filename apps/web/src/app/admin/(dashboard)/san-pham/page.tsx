@@ -9,12 +9,20 @@ export default function AdminProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-bold text-heading">Sản phẩm</h1>
-        <Link
-          href="/admin/san-pham/moi"
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition-transform hover:scale-105"
-        >
-          + Thêm sản phẩm
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/admin/san-pham/import"
+            className="rounded-full border-2 border-secondary px-5 py-2.5 text-sm font-bold text-heading transition-colors hover:bg-secondary"
+          >
+            Nhập từ Excel
+          </Link>
+          <Link
+            href="/admin/san-pham/moi"
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition-transform hover:scale-105"
+          >
+            + Thêm sản phẩm
+          </Link>
+        </div>
       </div>
       <ProductsTable />
     </div>

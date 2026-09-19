@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatVnd } from "@/lib/format";
 import { getErrorMessage } from "@/lib/get-error-message";
+import { createProduct, fetchProduct } from "../api";
 import { useDeleteProduct, useProducts } from "../hooks";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -22,9 +24,11 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export function ProductsTable() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   const { data, isLoading } = useProducts({ page, search: search || undefined });
   const deleteMutation = useDeleteProduct();
@@ -34,6 +38,35 @@ export function ProductsTable() {
     deleteMutation.mutate(id, {
       onError: (error) => alert(getErrorMessage(error, "Không thể xoá sản phẩm.")),
     });
+  }
+
+  async function handleDuplicate(id: string, name: string) {
+    const newName = prompt("Tên sản phẩm mới:", `${name} (Copy)`);
+    if (!newName?.trim()) return;
+
+    setDuplicatingId(id);
+    try {
+      // Copies price/category/description/status only — never images
+      // (they're real uploaded files, not something to silently clone).
+      // slug is omitted so the backend generates a fresh unique one from
+      // newName.
+      const source = await fetchProduct(id);
+      const copy = await createProduct({
+        name: newName.trim(),
+        description: source.description ?? undefined,
+        categoryId: source.category.id,
+        basePrice: source.basePrice,
+        salePrice: source.salePrice ?? undefined,
+        costPrice: source.costPrice ?? undefined,
+        color: source.color ?? undefined,
+        status: "DRAFT",
+      });
+      router.push(`/admin/san-pham/${copy.id}`);
+    } catch (error) {
+      alert(getErrorMessage(error, "Không thể sao chép sản phẩm."));
+    } finally {
+      setDuplicatingId(null);
+    }
   }
 
   return (
@@ -121,6 +154,14 @@ export function ProductsTable() {
                     <Link href={`/admin/san-pham/${product.id}`} className="font-semibold text-accent hover:underline">
                       Sửa
                     </Link>
+                    <button
+                      type="button"
+                      disabled={duplicatingId === product.id}
+                      onClick={() => handleDuplicate(product.id, product.name)}
+                      className="font-semibold text-heading hover:underline disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      {duplicatingId === product.id ? "Đang sao chép..." : "Sao chép"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(product.id, product.name)}
