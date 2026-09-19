@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Printer } from "lucide-react";
 import { formatVnd } from "@/lib/format";
+import { PAYMENT_METHOD_LABELS } from "@/lib/payment-method-labels";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { useChangeOrderStatus, useOrder } from "../hooks";
 import { OrderStatusBadge } from "./order-status-badge";
@@ -160,7 +161,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
             )}
             <p className="text-foreground/60">{order.customer?.phone ?? order.guestPhone}</p>
             <p className="text-foreground/60">
-              Thanh toán: {order.paymentMethod === "COD" ? "COD" : "Online"} ·{" "}
+              Thanh toán: {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod} ·{" "}
               {order.paymentStatus === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}
             </p>
           </section>

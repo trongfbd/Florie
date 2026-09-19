@@ -1,3 +1,5 @@
+export type PaymentMethod = "COD" | "VNPAY" | "MOMO" | "ZALOPAY";
+
 export interface CheckoutOrderItem {
   productId?: string;
   comboId?: string;
@@ -24,7 +26,7 @@ export interface CheckoutInput {
   deliveryTime?: string;
   cardMessage?: string;
   note?: string;
-  paymentMethod?: "COD" | "ONLINE";
+  paymentMethod?: PaymentMethod;
   voucherCode?: string;
   items: CheckoutOrderItem[];
 }
@@ -39,4 +41,8 @@ export interface CheckoutOrderResult {
   recipientName: string;
   recipientPhone: string;
   deliveryDate: string;
+  // Present only when paymentMethod is an online gateway and it created
+  // the redirect URL successfully — checkout-form.tsx sends the browser
+  // there instead of straight to the confirmation page.
+  paymentUrl?: string;
 }

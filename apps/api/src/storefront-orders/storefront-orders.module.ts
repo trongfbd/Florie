@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { OrdersModule } from '../orders/orders.module';
 import { CustomerAuthModule } from '../customer-auth/customer-auth.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { StorefrontOrdersController } from './storefront-orders.controller';
 import { StorefrontOrdersService } from './storefront-orders.service';
 
 @Module({
-  imports: [OrdersModule, CustomerAuthModule],
+  imports: [OrdersModule, CustomerAuthModule, PaymentsModule],
   controllers: [StorefrontOrdersController],
   providers: [StorefrontOrdersService],
 })

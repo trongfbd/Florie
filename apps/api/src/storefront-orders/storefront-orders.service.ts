@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
 import { QueryOrderDto } from '../orders/dto/query-order.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { PaymentsService } from '../payments/payments.service';
 import type { AuthenticatedCustomer } from '../customer-auth/types/customer-jwt-payload.type';
 import { CreateStorefrontOrderDto } from './dto/create-storefront-order.dto';
 import { TrackOrderDto } from './dto/track-order.dto';
@@ -33,14 +34,38 @@ export class StorefrontOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
-  create(dto: CreateStorefrontOrderDto, customer?: AuthenticatedCustomer) {
-    return this.ordersService.create({
+  async create(dto: CreateStorefrontOrderDto, customer?: AuthenticatedCustomer, ipAddr?: string) {
+    // Checked BEFORE creating the order — an unconfigured gateway must never
+    // leave an orphaned order behind with no way to pay it.
+    if (dto.paymentMethod) {
+      this.paymentsService.assertAvailable(dto.paymentMethod);
+    }
+
+    const order = await this.ordersService.create({
       ...dto,
       customerId: customer?.id,
       shippingFee: FLAT_SHIPPING_FEE_VND,
     });
+
+    if (!this.paymentsService.isOnlineMethod(order.paymentMethod)) {
+      return order;
+    }
+
+    // Order is created up front either way (stock isn't touched until an
+    // admin later moves it to ARRANGING — see Order.stockDeductedAt), so an
+    // abandoned/failed online payment just leaves an UNPAID order behind
+    // rather than needing a separate "payment intent" step before this one.
+    const paymentUrl = await this.paymentsService.createPaymentUrl(order.paymentMethod, {
+      orderNumber: order.orderNumber,
+      amount: order.total,
+      orderInfo: `Thanh toan don hang ${order.orderNumber}`,
+      ipAddr: ipAddr ?? '127.0.0.1',
+    });
+
+    return { ...order, paymentUrl };
   }
 
   async track(dto: TrackOrderDto) {

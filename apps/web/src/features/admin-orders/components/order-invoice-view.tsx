@@ -2,6 +2,7 @@
 
 import { Printer } from "lucide-react";
 import { formatVnd } from "@/lib/format";
+import { PAYMENT_METHOD_LABELS } from "@/lib/payment-method-labels";
 import { useOrder } from "../hooks";
 import { useInvoiceSettings } from "@/features/admin-invoice-settings/hooks";
 
@@ -65,7 +66,12 @@ export function OrderInvoiceView({ orderId }: { orderId: string }) {
           </div>
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-heading">Thanh toán</p>
-            <p>Hình thức: {order.paymentMethod === "COD" ? "Thanh toán khi nhận hàng (COD)" : "Online"}</p>
+            <p>
+              Hình thức:{" "}
+              {order.paymentMethod === "COD"
+                ? "Thanh toán khi nhận hàng (COD)"
+                : (PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod)}
+            </p>
             <p>Trạng thái: {order.paymentStatus === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}</p>
           </div>
         </div>

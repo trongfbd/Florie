@@ -10,8 +10,9 @@ import { useCartStore, useCartSubtotal } from "@/stores/cart-store";
 import { useCustomerAuthStore } from "@/stores/customer-auth-store";
 import { useLastOrderStore } from "@/stores/last-order-store";
 import { formatVnd } from "@/lib/format";
+import { getErrorMessage } from "@/lib/get-error-message";
 import { createStorefrontOrder, validateVoucher } from "../api";
-import type { VoucherPreviewResult } from "../types";
+import type { PaymentMethod, VoucherPreviewResult } from "../types";
 
 const baseSchema = z.object({
   guestName: z.string().optional(),
@@ -23,12 +24,20 @@ const baseSchema = z.object({
   deliveryTime: z.string().optional(),
   cardMessage: z.string().optional(),
   note: z.string().optional(),
+  paymentMethod: z.enum(["COD", "VNPAY", "MOMO", "ZALOPAY"]),
   voucherCode: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof baseSchema>;
 
 const SHIPPING_FEE_PREVIEW = 30_000;
+
+const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "COD", label: "Thanh toán khi nhận hàng (COD)" },
+  { value: "VNPAY", label: "VNPay" },
+  { value: "MOMO", label: "MoMo" },
+  { value: "ZALOPAY", label: "ZaloPay" },
+];
 
 export function CheckoutForm() {
   const router = useRouter();
@@ -51,7 +60,7 @@ export function CheckoutForm() {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { paymentMethod: "COD" } });
 
   const [voucherPreview, setVoucherPreview] = useState<VoucherPreviewResult | null>(null);
   const voucherCode = watch("voucherCode");
@@ -66,7 +75,6 @@ export function CheckoutForm() {
     mutationFn: (values: FormValues) =>
       createStorefrontOrder({
         ...values,
-        paymentMethod: "COD",
         items: items.map((item) =>
           item.kind === "combo"
             ? { comboId: item.id, quantity: item.quantity }
@@ -76,6 +84,13 @@ export function CheckoutForm() {
     onSuccess: (order) => {
       setLastOrder(order);
       clearCart();
+      if (order.paymentUrl) {
+        // Full redirect (not router.push) — the gateway is a different
+        // origin entirely; the customer lands back on /dat-hang-thanh-cong
+        // via the return URL we gave the gateway when creating the order.
+        window.location.href = order.paymentUrl;
+        return;
+      }
       router.push(`/dat-hang-thanh-cong/${order.orderNumber}`);
     },
   });
@@ -196,14 +211,17 @@ export function CheckoutForm() {
 
         <fieldset className="space-y-3 rounded-brand border-2 border-secondary bg-white p-5">
           <legend className="px-1 font-semibold text-heading">Thanh toán</legend>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" checked readOnly className="accent-accent" />
-            Thanh toán khi nhận hàng (COD)
-          </label>
-          <label className="flex items-center gap-2 text-sm text-foreground/40">
-            <input type="radio" disabled className="accent-accent" />
-            Thanh toán online (sắp ra mắt)
-          </label>
+          {PAYMENT_OPTIONS.map((option) => (
+            <label key={option.value} className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                value={option.value}
+                {...register("paymentMethod")}
+                className="accent-accent"
+              />
+              {option.label}
+            </label>
+          ))}
 
           <div className="space-y-1 pt-2">
             <label className="text-sm font-medium text-heading">Mã giảm giá (không bắt buộc)</label>
@@ -284,7 +302,7 @@ export function CheckoutForm() {
 
         {submitOrder.isError && (
           <p className="text-sm text-destructive">
-            Đặt hàng thất bại — vui lòng kiểm tra lại thông tin và thử lại.
+            {getErrorMessage(submitOrder.error, "Đặt hàng thất bại — vui lòng kiểm tra lại thông tin và thử lại.")}
           </p>
         )}
 

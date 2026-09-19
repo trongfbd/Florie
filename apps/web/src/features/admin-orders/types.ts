@@ -5,7 +5,7 @@ export interface OrderListItem {
   orderNumber: string;
   status: OrderStatus;
   paymentStatus: "UNPAID" | "PAID" | "REFUNDED";
-  paymentMethod: "COD" | "ONLINE";
+  paymentMethod: "COD" | "VNPAY" | "MOMO" | "ZALOPAY";
   total: number;
   discountAmount: number;
   recipientName: string;

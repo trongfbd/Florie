@@ -70,7 +70,9 @@ enum OrderStatus {
 
 enum PaymentMethod {
   COD
-  ONLINE
+  VNPAY
+  MOMO
+  ZALOPAY
 }
 
 enum PaymentStatus {
@@ -627,6 +629,10 @@ model Order {
   status          OrderStatus   @default(NEW)
   paymentMethod   PaymentMethod @default(COD)
   paymentStatus   PaymentStatus @default(UNPAID)
+  // Gateway's own transaction id (VNPay vnp_TransactionNo / MoMo transId /
+  // ZaloPay zp_trans_id) — set once the IPN/callback confirms payment, kept
+  // for reconciliation against the gateway's own dashboard.
+  paymentTransactionRef String?
   subtotal        Int
   shippingFee     Int           @default(0)
   discountAmount  Int           @default(0)

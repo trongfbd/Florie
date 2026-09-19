@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
 import { CustomerJwtAuthGuard } from '../customer-auth/guards/customer-jwt-auth.guard';
@@ -22,8 +23,14 @@ export class StorefrontOrdersController {
   create(
     @Body() dto: CreateStorefrontOrderDto,
     @CurrentCustomer() customer: AuthenticatedCustomer | undefined,
+    @Req() request: Request,
   ) {
-    return this.storefrontOrdersService.create(dto, customer);
+    const forwardedFor = request.headers['x-forwarded-for'];
+    const ipAddr =
+      (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() : undefined) ||
+      request.ip ||
+      '127.0.0.1';
+    return this.storefrontOrdersService.create(dto, customer, ipAddr);
   }
 
   @Public()

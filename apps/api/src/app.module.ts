@@ -34,6 +34,7 @@ import { VoucherClaimsModule } from './voucher-claims/voucher-claims.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { BackupsModule } from './backups/backups.module';
 import { InvoiceSettingsModule } from './invoice-settings/invoice-settings.module';
+import { PaymentsModule } from './payments/payments.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -73,6 +74,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     NotificationsModule,
     BackupsModule,
     InvoiceSettingsModule,
+    PaymentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
