@@ -10,6 +10,7 @@ import {
   useNotifications,
   useUnreadCount,
 } from "../hooks";
+import { useNotificationsSocket } from "../use-notifications-socket";
 import { formatRelativeTime } from "../utils";
 import type { Notification, NotificationType } from "../types";
 
@@ -38,6 +39,7 @@ export function NotificationBell() {
   const { data: page } = useNotifications({ page: 1, limit: 10 });
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
+  useNotificationsSocket();
 
   useEffect(() => {
     if (!open) return;

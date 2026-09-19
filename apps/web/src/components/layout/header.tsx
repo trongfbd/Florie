@@ -8,6 +8,7 @@ const STATIC_NAV_LINKS = [
   { href: "/combo", label: "Combo" },
   { href: "/flash-sale", label: "Flash Sale" },
   { href: "/blog", label: "Blog" },
+  { href: "/#lien-he", label: "Liên hệ" },
 ];
 
 export async function Header() {

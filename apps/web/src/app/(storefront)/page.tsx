@@ -15,6 +15,7 @@ import { FlashSaleSection } from "@/features/marketing/components/flash-sale-sec
 import { HeroCarousel } from "@/features/marketing/components/hero-carousel";
 import { FadeIn } from "@/components/motion/fade-in";
 import { Container } from "@/components/layout/container";
+import { ContactSection } from "@/features/storefront/components/contact-section";
 
 // Fallback hero photo, used only until an admin creates a real HOME banner.
 const FALLBACK_HERO_IMAGE_URL =
@@ -44,26 +45,16 @@ export default async function Home() {
   const heroLink = banners[0]?.linkUrl ?? "/danh-muc/hoa-sinh-nhat";
 
   return (
+    <>
     <div className="space-y-24 pb-24">
-      <section className="relative flex min-h-[620px] items-center overflow-hidden">
+      <section className="relative flex min-h-[620px] items-end overflow-hidden">
         <HeroCarousel images={heroImages} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/15" />
         <div className="absolute inset-0 bg-gradient-to-r from-heading/40 via-transparent to-transparent" />
 
-        <Container className="relative z-10">
-          <FadeIn className="max-w-xl space-y-6">
-            <span className="inline-block rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white backdrop-blur-sm">
-              Bèo Flower Corner · Luxury Flower Shop
-            </span>
-            <h1 className="font-display text-5xl font-bold leading-[1.1] text-white sm:text-7xl">
-              Mỗi bó hoa,
-              <br />
-              một câu chuyện
-            </h1>
-            <p className="max-w-md text-base text-white/90 sm:text-lg">
-              Hoa tươi tuyển chọn mỗi ngày, thiết kế tinh tế, giao nhanh trong ngày tại Hà Nội.
-            </p>
-            <div className="flex flex-wrap gap-3 pt-2">
+        <Container className="relative z-10 pb-20">
+          <FadeIn className="ml-auto max-w-xl">
+            <div className="flex flex-wrap justify-end gap-3">
               <Link
                 href={heroLink}
                 className="rounded-full bg-accent px-8 py-3.5 text-sm font-bold text-white shadow-xl shadow-accent/40 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-accent/50"
@@ -91,14 +82,6 @@ export default async function Home() {
           </Container>
         </div>
       </section>
-
-      {stats && (
-        <Container>
-          <FadeIn>
-            <SocialProofStats stats={stats} />
-          </FadeIn>
-        </Container>
-      )}
 
       <Container className="space-y-24">
         {flashSale && flashSale.items.length > 0 && (
@@ -151,7 +134,17 @@ export default async function Home() {
           </div>
           <ProductGrid products={featured.data} />
         </FadeIn>
+
+        {stats && (
+          <FadeIn>
+            <SocialProofStats stats={stats} />
+          </FadeIn>
+        )}
       </Container>
     </div>
+    {/* Full-bleed section with its own background band, rendered outside
+        the space-y-24 div above rather than inside it. */}
+    <ContactSection />
+    </>
   );
 }

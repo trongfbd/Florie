@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCategories } from "@/lib/api-server";
+import { contactConfig } from "@/lib/contact-config";
 import { Container } from "./container";
 
 export async function Footer() {
@@ -44,15 +45,34 @@ export async function Footer() {
                 Blog
               </Link>
             </li>
+            <li>
+              <Link href="/#lien-he" className="transition-colors hover:text-primary">
+                Liên hệ
+              </Link>
+            </li>
           </ul>
         </div>
 
         <div className="space-y-3">
           <p className="font-semibold text-white">Liên hệ</p>
           <ul className="space-y-2 text-white/60">
-            <li>Hà Nội, Việt Nam</li>
-            <li>0900 000 000</li>
+            <li>{contactConfig.address}</li>
+            <li>
+              <a href={`tel:${contactConfig.phone}`} className="transition-colors hover:text-primary">
+                {contactConfig.phoneDisplay}
+              </a>
+            </li>
             <li>hello@florie.vn</li>
+            <li>
+              <a
+                href={contactConfig.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-primary"
+              >
+                Facebook
+              </a>
+            </li>
           </ul>
         </div>
       </Container>

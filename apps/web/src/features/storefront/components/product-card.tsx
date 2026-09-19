@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { formatVnd } from "@/lib/format";
+import { QuickAddToCartButton } from "@/features/cart/components/quick-add-to-cart-button";
 import type { ProductListItem } from "../types";
 
 export function ProductCard({ product }: { product: ProductListItem }) {
@@ -41,11 +42,20 @@ export function ProductCard({ product }: { product: ProductListItem }) {
           )}
         </div>
 
-        {hasDiscount && (
-          <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-white shadow-md">
-            Giảm giá
-          </span>
-        )}
+        <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
+          {hasDiscount && (
+            <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-white shadow-md">
+              Giảm giá
+            </span>
+          )}
+          <QuickAddToCartButton
+            id={product.id}
+            name={product.name}
+            slug={product.slug}
+            imageUrl={image?.url ?? null}
+            unitPrice={product.salePrice ?? product.basePrice}
+          />
+        </div>
       </div>
 
       <div className="space-y-1.5 p-4">

@@ -6,21 +6,27 @@ import {
   PaginatedResult,
 } from '../common/dto/paginated-result.dto';
 import { QueryNotificationDto } from './dto/query-notification.dto';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gateway: NotificationsGateway,
+  ) {}
 
   /** Internal helper for other services (orders, customer-auth, inventory) to raise a notification. */
-  create(
+  async create(
     type: NotificationType,
     title: string,
     message: string,
     relatedEntityId?: string,
   ): Promise<Notification> {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: { type, title, message, relatedEntityId },
     });
+    this.gateway.emitNew(notification);
+    return notification;
   }
 
   async findAll(

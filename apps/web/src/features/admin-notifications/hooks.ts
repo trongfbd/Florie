@@ -7,7 +7,9 @@ import {
 } from "./api";
 
 const KEY = ["admin-notifications"];
-const POLL_INTERVAL_MS = 30_000;
+// Real-time push (use-notifications-socket.ts) is now the primary update
+// path — this poll is just a fallback for when the socket is disconnected.
+const POLL_INTERVAL_MS = 60_000;
 
 export function useNotifications(query: { page?: number; limit?: number }) {
   return useQuery({

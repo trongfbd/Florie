@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { GlobalPopup } from "@/components/marketing/global-popup";
 import { PixelScripts } from "@/components/marketing/pixel-scripts";
+import { FloatingContactWidget } from "@/components/marketing/floating-contact-widget";
 import { getSiteSettings } from "@/lib/api-server";
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default async function StorefrontLayout({ children }: { children: React.R
       <main className="flex-1">{children}</main>
       <Footer />
       <GlobalPopup />
+      <FloatingContactWidget />
     </>
   );
 }
