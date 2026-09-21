@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { OrderStatus } from '@prisma/client';
+import { OrderChannel, OrderStatus, PaymentStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsIn,
@@ -24,6 +26,31 @@ export class QueryOrderDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(OrderStatus)
   status?: OrderStatus;
+
+  @ApiPropertyOptional({ enum: PaymentStatus })
+  @IsOptional()
+  @IsEnum(PaymentStatus)
+  paymentStatus?: PaymentStatus;
+
+  @ApiPropertyOptional({ enum: OrderChannel })
+  @IsOptional()
+  @IsEnum(OrderChannel)
+  channel?: OrderChannel;
+
+  @ApiPropertyOptional({
+    description:
+      'Only orders past their deliveryDate that are not COMPLETED/CANCELLED/DELIVERY_FAILED. Takes precedence over deliveryDateFrom/To and status when combined.',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  overdue?: boolean;
+
+  @ApiPropertyOptional({ description: 'Only orders not yet fully PAID (UNPAID or DEPOSITED)' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  unpaidOnly?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

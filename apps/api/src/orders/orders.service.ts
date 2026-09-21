@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  OrderChannel,
   OrderSource,
   OrderStatus,
   PaymentMethod,
@@ -20,11 +22,15 @@ import {
 import { computeVoucherDiscount } from '../common/utils/voucher-discount.util';
 import { InventoryService } from '../inventory/inventory.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CustomersService } from '../customers/customers.service';
+import { STORAGE_SERVICE } from '../storage/storage.service.interface';
+import type { StorageService } from '../storage/storage.service.interface';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { QueryOrderDto } from './dto/query-order.dto';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 
 const ORDER_DETAIL_INCLUDE = {
   customer: { select: { id: true, name: true, phone: true } },
@@ -66,9 +72,19 @@ interface FlashSaleIncrement {
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.NEW]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
   [OrderStatus.CONFIRMED]: [OrderStatus.ARRANGING, OrderStatus.CANCELLED],
-  [OrderStatus.ARRANGING]: [OrderStatus.SHIPPING, OrderStatus.CANCELLED],
-  [OrderStatus.SHIPPING]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+  [OrderStatus.ARRANGING]: [OrderStatus.READY, OrderStatus.CANCELLED],
+  [OrderStatus.READY]: [OrderStatus.SHIPPING, OrderStatus.CANCELLED],
+  [OrderStatus.SHIPPING]: [
+    OrderStatus.COMPLETED,
+    OrderStatus.DELIVERY_FAILED,
+    OrderStatus.CANCELLED,
+  ],
   [OrderStatus.COMPLETED]: [],
+  // Not a dead end: a failed delivery can be retried (back to SHIPPING,
+  // no re-deduction needed — the arranged flowers were never restocked,
+  // see the CANCELLED restock check below) or written off (CANCELLED,
+  // which restocks normally since stockDeductedAt is still set).
+  [OrderStatus.DELIVERY_FAILED]: [OrderStatus.SHIPPING, OrderStatus.CANCELLED],
   [OrderStatus.CANCELLED]: [],
 };
 
@@ -78,6 +94,8 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly inventoryService: InventoryService,
     private readonly notificationsService: NotificationsService,
+    private readonly customersService: CustomersService,
+    @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
   ) {}
 
   async create(
@@ -90,18 +108,33 @@ export class OrdersService {
       );
     }
 
-    if (dto.customerId) {
+    let customerId = dto.customerId;
+    if (customerId) {
       const exists = await this.prisma.customer.findUnique({
-        where: { id: dto.customerId },
+        where: { id: customerId },
         select: { id: true },
       });
       if (!exists) {
         throw new NotFoundException('Không tìm thấy khách hàng');
       }
+    } else if (actorUserId && dto.guestPhone) {
+      // Admin-created orders only (actorUserId is never set on the public
+      // storefront checkout path) — reuse or create a lightweight Customer
+      // record by phone so repeat Zalo/phone customers accumulate order
+      // history over time, matching "khách cũ tự điền, khách mới tự lưu".
+      const existing = await this.customersService.findByPhone(dto.guestPhone);
+      if (existing) {
+        customerId = existing.id;
+      } else if (dto.guestName) {
+        const createdCustomer = await this.prisma.customer.create({
+          data: { name: dto.guestName, phone: dto.guestPhone },
+        });
+        customerId = createdCustomer.id;
+      }
     }
 
     const { items, subtotal, flashSaleIncrements } =
-      await this.resolveOrderItems(dto.items);
+      await this.resolveOrderItems(dto.items, !!actorUserId);
     const { voucherId, discountAmount } = await this.resolveVoucher(
       dto.voucherCode,
       subtotal,
@@ -114,12 +147,13 @@ export class OrdersService {
       const order = await tx.order.create({
         data: {
           orderNumber,
-          customerId: dto.customerId,
+          customerId,
           guestName: dto.guestName,
           guestPhone: dto.guestPhone,
           recipientName: dto.recipientName,
           recipientPhone: dto.recipientPhone,
           deliveryAddress: dto.deliveryAddress,
+          deliveryDistrict: dto.deliveryDistrict,
           deliveryDate: new Date(dto.deliveryDate),
           deliveryTime: dto.deliveryTime,
           cardMessage: dto.cardMessage,
@@ -128,9 +162,11 @@ export class OrdersService {
           subtotal,
           shippingFee,
           discountAmount,
+          depositAmount: dto.depositAmount ?? 0,
           total,
           voucherId,
           source: dto.source ?? OrderSource.DIRECT,
+          channel: dto.channel ?? OrderChannel.WEB,
           createdById: actorUserId,
           items: { create: items },
           statusHistory: {
@@ -175,8 +211,28 @@ export class OrdersService {
   }
 
   async findAll(query: QueryOrderDto): Promise<PaginatedResult<OrderListItem>> {
+    // `overdue` takes precedence over deliveryDateFrom/To and status when
+    // combined — they're meant as alternative quick filters, not composed
+    // together, from the admin list's tab UI.
+    const deliveryDateFilter = query.overdue
+      ? { deliveryDate: { lt: new Date() } }
+      : query.deliveryDateFrom || query.deliveryDateTo
+        ? {
+            deliveryDate: {
+              ...(query.deliveryDateFrom && {
+                gte: new Date(query.deliveryDateFrom),
+              }),
+              ...(query.deliveryDateTo && {
+                lte: new Date(query.deliveryDateTo),
+              }),
+            },
+          }
+        : {};
+
     const where: Prisma.OrderWhereInput = {
       ...(query.status && { status: query.status }),
+      ...(query.paymentStatus && { paymentStatus: query.paymentStatus }),
+      ...(query.channel && { channel: query.channel }),
       ...(query.customerId && { customerId: query.customerId }),
       ...(query.voucherId && { voucherId: query.voucherId }),
       ...(query.search && {
@@ -186,14 +242,17 @@ export class OrdersService {
           { recipientPhone: { contains: query.search } },
         ],
       }),
-      ...((query.deliveryDateFrom || query.deliveryDateTo) && {
-        deliveryDate: {
-          ...(query.deliveryDateFrom && {
-            gte: new Date(query.deliveryDateFrom),
-          }),
-          ...(query.deliveryDateTo && { lte: new Date(query.deliveryDateTo) }),
+      ...deliveryDateFilter,
+      ...(query.overdue && {
+        status: {
+          notIn: [
+            OrderStatus.COMPLETED,
+            OrderStatus.CANCELLED,
+            OrderStatus.DELIVERY_FAILED,
+          ],
         },
       }),
+      ...(query.unpaidOnly && { paymentStatus: { not: PaymentStatus.PAID } }),
     };
 
     const [data, total] = await this.prisma.$transaction([
@@ -241,6 +300,66 @@ export class OrdersService {
       },
       include: ORDER_DETAIL_INCLUDE,
     });
+  }
+
+  /** Manual payment-status control (Đã cọc/Đã thanh toán đủ) — separate from
+   * changeStatus() since payment status is independent of order status. */
+  async updatePayment(id: string, dto: UpdatePaymentDto): Promise<OrderDetail> {
+    await this.findOne(id);
+    return this.prisma.order.update({
+      where: { id },
+      data: {
+        paymentStatus: dto.paymentStatus,
+        ...(dto.depositAmount !== undefined && {
+          depositAmount: dto.depositAmount,
+        }),
+      },
+      include: ORDER_DETAIL_INCLUDE,
+    });
+  }
+
+  /** Reference images (ảnh mẫu khách gửi qua Zalo/Facebook) — same
+   * upload/delete shape as ProductsService.addImage/removeImage. */
+  async addImage(
+    orderId: string,
+    file: { buffer: Buffer; originalname: string; mimetype: string },
+    altText?: string,
+  ) {
+    await this.findOne(orderId);
+
+    const uploaded = await this.storageService.upload({
+      buffer: file.buffer,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      folder: 'orders',
+    });
+
+    const currentCount = await this.prisma.orderImage.count({
+      where: { orderId },
+    });
+
+    return this.prisma.orderImage.create({
+      data: {
+        orderId,
+        url: uploaded.url,
+        storageKey: uploaded.key,
+        altText,
+        displayOrder: currentCount,
+      },
+    });
+  }
+
+  async removeImage(orderId: string, imageId: string): Promise<void> {
+    const image = await this.prisma.orderImage.findUnique({
+      where: { id: imageId },
+    });
+    if (!image || image.orderId !== orderId) {
+      throw new NotFoundException('Không tìm thấy ảnh đơn hàng');
+    }
+    await this.prisma.orderImage.delete({ where: { id: imageId } });
+    if (image.storageKey) {
+      await this.storageService.delete(image.storageKey).catch(() => undefined);
+    }
   }
 
   async changeStatus(
@@ -300,7 +419,10 @@ export class OrdersService {
     return this.findOne(id);
   }
 
-  private async resolveOrderItems(items: CreateOrderItemDto[]): Promise<{
+  private async resolveOrderItems(
+    items: CreateOrderItemDto[],
+    allowCustomItems: boolean,
+  ): Promise<{
     items: ResolvedOrderItem[];
     subtotal: number;
     flashSaleIncrements: FlashSaleIncrement[];
@@ -310,13 +432,45 @@ export class OrdersService {
     const flashSaleIncrements: FlashSaleIncrement[] = [];
 
     for (const item of items) {
-      if (item.productId && item.comboId) {
+      const choiceCount = [
+        item.productId,
+        item.comboId,
+        item.customName,
+      ].filter(Boolean).length;
+      if (choiceCount > 1) {
         throw new BadRequestException(
-          'Mỗi mục chỉ được chọn 1 trong 2: sản phẩm hoặc combo',
+          'Mỗi mục chỉ được chọn 1 trong: sản phẩm, combo, hoặc mẫu tuỳ chỉnh',
         );
       }
-      if (!item.productId && !item.comboId) {
-        throw new BadRequestException('Mỗi mục phải có productId hoặc comboId');
+      if (choiceCount === 0) {
+        throw new BadRequestException(
+          'Mỗi mục phải có productId, comboId, hoặc mẫu tuỳ chỉnh (customName)',
+        );
+      }
+
+      if (item.customName) {
+        // Gated to admin-created orders only (allowCustomItems is derived
+        // from actorUserId presence in create()) — the public storefront
+        // checkout shares this exact DTO/method, so without this check a
+        // request could set an arbitrary customPrice on a live order.
+        if (!allowCustomItems) {
+          throw new BadRequestException(
+            'Mẫu tuỳ chỉnh chỉ được dùng khi admin tạo đơn thủ công',
+          );
+        }
+        if (item.customPrice === undefined) {
+          throw new BadRequestException(
+            'Mẫu tuỳ chỉnh cần có giá (customPrice)',
+          );
+        }
+        resolved.push({
+          itemName: item.customName,
+          quantity: item.quantity,
+          unitPrice: item.customPrice,
+          subtotal: item.customPrice * item.quantity,
+        });
+        subtotal += item.customPrice * item.quantity;
+        continue;
       }
 
       if (item.productId) {
@@ -359,7 +513,9 @@ export class OrdersService {
       } else {
         const combo = await this.prisma.combo.findUnique({
           where: { id: item.comboId },
-          include: { items: { include: { product: { select: { costPrice: true } } } } },
+          include: {
+            items: { include: { product: { select: { costPrice: true } } } },
+          },
         });
         if (!combo) {
           throw new NotFoundException(`Không tìm thấy combo ${item.comboId}`);
@@ -372,8 +528,13 @@ export class OrdersService {
         // Cost of assembling one combo unit = sum of its constituent products'
         // cost prices — only meaningful if every constituent has one set,
         // otherwise leave it undefined rather than silently underestimating.
-        const comboCostPrice = combo.items.every((ci) => ci.product.costPrice != null)
-          ? combo.items.reduce((sum, ci) => sum + ci.quantity * (ci.product.costPrice ?? 0), 0)
+        const comboCostPrice = combo.items.every(
+          (ci) => ci.product.costPrice != null,
+        )
+          ? combo.items.reduce(
+              (sum, ci) => sum + ci.quantity * (ci.product.costPrice ?? 0),
+              0,
+            )
           : undefined;
         resolved.push({
           comboId: combo.id,

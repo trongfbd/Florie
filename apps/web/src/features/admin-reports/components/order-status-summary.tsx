@@ -7,8 +7,10 @@ const STATUS_TONE: Record<string, string> = {
   NEW: "bg-secondary text-heading",
   CONFIRMED: "bg-primary/60 text-heading",
   ARRANGING: "bg-accent/20 text-accent",
+  READY: "bg-accent/20 text-accent",
   SHIPPING: "bg-accent/20 text-accent",
   COMPLETED: "bg-success/15 text-success",
+  DELIVERY_FAILED: "bg-destructive/10 text-destructive",
   CANCELLED: "bg-destructive/10 text-destructive",
 };
 

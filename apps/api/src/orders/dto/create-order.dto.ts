@@ -1,5 +1,5 @@
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
-import { OrderSource, PaymentMethod } from '@prisma/client';
+import { OrderChannel, OrderSource, PaymentMethod } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -19,12 +19,16 @@ export class CreateOrderDto {
   @IsString()
   customerId?: string;
 
-  @ApiPropertyOptional({ description: 'Required when customerId is omitted (guest order)' })
+  @ApiPropertyOptional({
+    description: 'Required when customerId is omitted (guest order)',
+  })
   @IsOptional()
   @IsString()
   guestName?: string;
 
-  @ApiPropertyOptional({ description: 'Required when customerId is omitted (guest order)' })
+  @ApiPropertyOptional({
+    description: 'Required when customerId is omitted (guest order)',
+  })
   @IsOptional()
   @IsString()
   guestPhone?: string;
@@ -40,6 +44,11 @@ export class CreateOrderDto {
   @ApiProperty()
   @IsString()
   deliveryAddress: string;
+
+  @ApiPropertyOptional({ description: 'Quận/khu vực giao' })
+  @IsOptional()
+  @IsString()
+  deliveryDistrict?: string;
 
   @ApiProperty()
   @IsDateString()
@@ -72,6 +81,16 @@ export class CreateOrderDto {
   @Min(0)
   shippingFee?: number;
 
+  @ApiPropertyOptional({
+    default: 0,
+    description: 'VND — tiền cọc đã nhận (đơn thủ công)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  depositAmount?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -81,6 +100,16 @@ export class CreateOrderDto {
   @IsOptional()
   @IsEnum(OrderSource)
   source?: OrderSource;
+
+  @ApiPropertyOptional({
+    enum: OrderChannel,
+    default: OrderChannel.WEB,
+    description:
+      'Kênh khách đặt hàng — mặc định WEB, checkout công khai không tự set được',
+  })
+  @IsOptional()
+  @IsEnum(OrderChannel)
+  channel?: OrderChannel;
 
   @ApiProperty({ type: [CreateOrderItemDto] })
   @ValidateNested({ each: true })

@@ -9,8 +9,9 @@ import {
 
 const KEY = ["admin-customers"];
 
-export function useCustomers(query: { page?: number; search?: string; isVip?: boolean }) {
-  return useQuery({ queryKey: [...KEY, query], queryFn: () => fetchCustomers(query) });
+export function useCustomers(query: { page?: number; search?: string; isVip?: boolean; enabled?: boolean }) {
+  const { enabled, ...params } = query;
+  return useQuery({ queryKey: [...KEY, params], queryFn: () => fetchCustomers(params), enabled });
 }
 
 export function useCustomer(id: string) {

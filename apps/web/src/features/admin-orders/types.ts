@@ -1,17 +1,41 @@
-export type OrderStatus = "NEW" | "CONFIRMED" | "ARRANGING" | "SHIPPING" | "COMPLETED" | "CANCELLED";
+export type OrderStatus =
+  | "NEW"
+  | "CONFIRMED"
+  | "ARRANGING"
+  | "READY"
+  | "SHIPPING"
+  | "COMPLETED"
+  | "DELIVERY_FAILED"
+  | "CANCELLED";
+
+export type PaymentStatus = "UNPAID" | "DEPOSITED" | "PAID" | "REFUNDED";
+export type PaymentMethod = "COD" | "VNPAY" | "MOMO" | "ZALOPAY";
+export type OrderChannel = "WEB" | "ZALO" | "FACEBOOK" | "TIKTOK" | "PHONE" | "WALK_IN" | "B2B";
+
+export interface OrderImageRow {
+  id: string;
+  url: string;
+  altText: string | null;
+  kind: "REFERENCE";
+  displayOrder: number;
+}
 
 export interface OrderListItem {
   id: string;
   orderNumber: string;
   status: OrderStatus;
-  paymentStatus: "UNPAID" | "PAID" | "REFUNDED";
-  paymentMethod: "COD" | "VNPAY" | "MOMO" | "ZALOPAY";
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
+  channel: OrderChannel;
   total: number;
+  depositAmount: number;
   discountAmount: number;
   recipientName: string;
   recipientPhone: string;
   guestName: string | null;
   deliveryDate: string;
+  deliveryTime: string | null;
+  deliveryDistrict: string | null;
   customer: { id: string; name: string; phone: string | null } | null;
   createdAt: string;
 }
@@ -47,6 +71,7 @@ export interface OrderDetail extends OrderListItem {
   createdBy: { id: string; name: string } | null;
   items: OrderItemRow[];
   statusHistory: OrderStatusHistoryRow[];
+  images: OrderImageRow[];
 }
 
 export interface QueryOrdersInput {
@@ -54,6 +79,10 @@ export interface QueryOrdersInput {
   limit?: number;
   search?: string;
   status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  channel?: OrderChannel;
+  overdue?: boolean;
+  unpaidOnly?: boolean;
   customerId?: string;
   voucherId?: string;
   deliveryDateFrom?: string;
@@ -75,4 +104,37 @@ export interface UpdateOrderInput {
   deliveryTime?: string;
   cardMessage?: string;
   note?: string;
+}
+
+export interface UpdatePaymentInput {
+  paymentStatus: PaymentStatus;
+  depositAmount?: number;
+}
+
+export interface CreateOrderItemInput {
+  productId?: string;
+  comboId?: string;
+  customName?: string;
+  customPrice?: number;
+  quantity: number;
+}
+
+export interface CreateOrderInput {
+  customerId?: string;
+  guestName?: string;
+  guestPhone?: string;
+  recipientName: string;
+  recipientPhone: string;
+  deliveryAddress: string;
+  deliveryDistrict?: string;
+  deliveryDate: string;
+  deliveryTime?: string;
+  cardMessage?: string;
+  note?: string;
+  paymentMethod?: PaymentMethod;
+  shippingFee?: number;
+  depositAmount?: number;
+  voucherCode?: string;
+  channel?: OrderChannel;
+  items: CreateOrderItemInput[];
 }

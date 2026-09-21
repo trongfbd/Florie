@@ -4,21 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { Printer } from "lucide-react";
 import { formatVnd } from "@/lib/format";
+import { getErrorMessage } from "@/lib/get-error-message";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-method-labels";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
-import { useChangeOrderStatus, useOrder } from "../hooks";
+import { useChangeOrderStatus, useOrder, useUpdateOrderPayment } from "../hooks";
+import { ALLOWED_TRANSITIONS } from "../lib/status-transitions";
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONE } from "../lib/payment-status-labels";
 import { OrderStatusBadge } from "./order-status-badge";
+import { OrderImagesManager } from "./order-images-manager";
 import { ShippingInfoSection } from "./shipping-info-section";
-import type { OrderStatus } from "../types";
-
-const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  NEW: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["ARRANGING", "CANCELLED"],
-  ARRANGING: ["SHIPPING", "CANCELLED"],
-  SHIPPING: ["COMPLETED", "CANCELLED"],
-  COMPLETED: [],
-  CANCELLED: [],
-};
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("vi-VN", {
@@ -33,13 +27,22 @@ function formatDateTime(iso: string): string {
 export function OrderDetailContent({ orderId }: { orderId: string }) {
   const { data: order, isLoading } = useOrder(orderId);
   const changeStatus = useChangeOrderStatus(orderId);
+  const updatePayment = useUpdateOrderPayment(orderId);
   const [note, setNote] = useState("");
+  const [depositInput, setDepositInput] = useState("");
 
   if (isLoading || !order) {
     return <p className="text-foreground/60">Đang tải...</p>;
   }
 
   const nextStatuses = ALLOWED_TRANSITIONS[order.status];
+  const amountDue = order.paymentStatus === "PAID" ? 0 : order.total - order.depositAmount;
+
+  function markDeposited() {
+    const amount = Number(depositInput);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    updatePayment.mutate({ paymentStatus: "DEPOSITED", depositAmount: amount });
+  }
 
   return (
     <div className="space-y-6">
@@ -49,6 +52,22 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
           <p className="mt-1 text-sm text-foreground/60">Đặt lúc {formatDateTime(order.createdAt)}</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href={`/admin/phieu-lam-hoa/${order.id}`}
+            target="_blank"
+            className="flex items-center gap-2 rounded-full border-2 border-secondary px-4 py-2 text-sm font-semibold text-heading transition-colors hover:bg-secondary"
+          >
+            <Printer size={16} />
+            Phiếu làm hoa
+          </Link>
+          <Link
+            href={`/admin/phieu-giao-hang/${order.id}`}
+            target="_blank"
+            className="flex items-center gap-2 rounded-full border-2 border-secondary px-4 py-2 text-sm font-semibold text-heading transition-colors hover:bg-secondary"
+          >
+            <Printer size={16} />
+            Phiếu giao hàng
+          </Link>
           <Link
             href={`/admin/hoa-don/${order.id}`}
             target="_blank"
@@ -160,11 +179,61 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
               <p className="font-medium text-heading">{order.guestName} (khách vãng lai)</p>
             )}
             <p className="text-foreground/60">{order.customer?.phone ?? order.guestPhone}</p>
-            <p className="text-foreground/60">
-              Thanh toán: {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod} ·{" "}
-              {order.paymentStatus === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}
-            </p>
           </section>
+
+          <section className="space-y-3 rounded-brand border-2 border-secondary bg-white p-5 text-sm">
+            <h2 className="font-display text-lg font-bold text-heading">Thanh toán</h2>
+            <p className="text-foreground/60">
+              Phương thức: {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}
+            </p>
+            <span
+              className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${PAYMENT_STATUS_TONE[order.paymentStatus]}`}
+            >
+              {PAYMENT_STATUS_LABELS[order.paymentStatus]}
+            </span>
+            {order.depositAmount > 0 && (
+              <p className="text-foreground/60">Đã cọc: {formatVnd(order.depositAmount)}</p>
+            )}
+            <p className="font-bold text-heading">Còn phải thu: {formatVnd(amountDue)}</p>
+
+            {order.paymentStatus !== "PAID" && (
+              <div className="space-y-2 border-t border-secondary pt-3">
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Số tiền cọc"
+                    value={depositInput}
+                    onChange={(e) => setDepositInput(e.target.value)}
+                    className="w-32 rounded-lg border-2 border-secondary px-2 py-1.5 text-sm outline-none focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    disabled={updatePayment.isPending}
+                    onClick={markDeposited}
+                    className="rounded-full border-2 border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-60"
+                  >
+                    Đánh dấu đã cọc
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  disabled={updatePayment.isPending}
+                  onClick={() => updatePayment.mutate({ paymentStatus: "PAID" })}
+                  className="w-full rounded-full bg-success/90 px-3 py-1.5 text-xs font-bold text-white hover:bg-success disabled:opacity-60"
+                >
+                  Đánh dấu đã thanh toán đủ
+                </button>
+              </div>
+            )}
+            {updatePayment.isError && (
+              <p className="text-xs text-destructive">
+                {getErrorMessage(updatePayment.error, "Không thể cập nhật thanh toán.")}
+              </p>
+            )}
+          </section>
+
+          <OrderImagesManager orderId={order.id} images={order.images} />
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ export function TrackingForm() {
 
   const order = trackMutation.data;
   const isCancelled = order?.status === "CANCELLED";
+  const isDeliveryFailed = order?.status === "DELIVERY_FAILED";
   const currentStepIndex = order ? ORDER_STATUS_STEPS.indexOf(order.status as never) : -1;
 
   return (
@@ -74,14 +75,24 @@ export function TrackingForm() {
             </div>
             <span
               className={`rounded-full px-4 py-1.5 text-sm font-bold ${
-                isCancelled ? "bg-destructive/10 text-destructive" : "bg-success/20 text-success"
+                isCancelled
+                  ? "bg-destructive/10 text-destructive"
+                  : isDeliveryFailed
+                    ? "bg-accent/10 text-accent"
+                    : "bg-success/20 text-success"
               }`}
             >
               {ORDER_STATUS_LABELS[order.status] ?? order.status}
             </span>
           </div>
 
-          {!isCancelled && (
+          {isDeliveryFailed && (
+            <p className="rounded-lg bg-accent/5 p-3 text-sm text-heading">
+              Lần giao gần nhất chưa thành công — shop sẽ liên hệ lại để sắp xếp giao lại sớm nhất.
+            </p>
+          )}
+
+          {!isCancelled && !isDeliveryFailed && (
             <div className="flex items-center">
               {ORDER_STATUS_STEPS.map((step, index) => (
                 <div key={step} className="flex flex-1 items-center last:flex-none">

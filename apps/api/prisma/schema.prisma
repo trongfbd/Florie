@@ -63,8 +63,10 @@ enum OrderStatus {
   NEW // Đơn mới
   CONFIRMED // Đã xác nhận
   ARRANGING // Đang cắm hoa
+  READY // Chờ giao (đã làm xong hoa, chờ đến khung giờ giao)
   SHIPPING // Đang giao
-  COMPLETED // Hoàn thành
+  COMPLETED // Đã giao
+  DELIVERY_FAILED // Giao thất bại — có thể chuyển lại SHIPPING (giao lại) hoặc CANCELLED
   CANCELLED // Đã hủy
 }
 
@@ -77,6 +79,7 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   UNPAID
+  DEPOSITED // Đã cọc — xem Order.depositAmount
   PAID
   REFUNDED
 }
@@ -87,6 +90,25 @@ enum OrderSource {
   TIKTOK
   GOOGLE
   OTHER
+}
+
+// How the order was actually placed (Zalo/phone/walk-in/...) — deliberately
+// separate from OrderSource above, which tracks ad-attribution (paired with
+// ExpenseCategory's *_ADS values for marketing ROI), a different concept
+// that happens to look similar. WEB is the default so every existing/future
+// storefront checkout order needs no explicit value.
+enum OrderChannel {
+  WEB
+  ZALO
+  FACEBOOK
+  TIKTOK
+  PHONE
+  WALK_IN
+  B2B
+}
+
+enum OrderImageKind {
+  REFERENCE // Ảnh mẫu khách gửi qua Zalo/Facebook khi đặt hàng
 }
 
 enum ExpenseCategory {
@@ -467,16 +489,16 @@ model Blog {
 }
 
 model Popup {
-  id           String    @id @default(cuid())
-  title        String
-  imageUrl     String?
-  content      String?
-  linkUrl      String?
-  isActive     Boolean   @default(true)
-  startAt      DateTime?
-  endAt        DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  title     String
+  imageUrl  String?
+  content   String?
+  linkUrl   String?
+  isActive  Boolean   @default(true)
+  startAt   DateTime?
+  endAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Voucher campaign this popup advertises — the popup only ever shows publicly
   // when this voucher is set AND currently active/within its own date window.
@@ -613,47 +635,72 @@ model ProductMaterial {
 // ============================================================
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  customerId      String?
-  customer        Customer?     @relation(fields: [customerId], references: [id])
-  guestName       String?
-  guestPhone      String?
-  recipientName   String
-  recipientPhone  String
-  deliveryAddress String
-  deliveryDate    DateTime
-  deliveryTime    String?
-  cardMessage     String?
-  note            String?
-  status          OrderStatus   @default(NEW)
-  paymentMethod   PaymentMethod @default(COD)
-  paymentStatus   PaymentStatus @default(UNPAID)
+  id                    String        @id @default(cuid())
+  orderNumber           String        @unique
+  customerId            String?
+  customer              Customer?     @relation(fields: [customerId], references: [id])
+  guestName             String?
+  guestPhone            String?
+  recipientName         String
+  recipientPhone        String
+  deliveryAddress       String
+  deliveryDistrict      String? // Quận/khu vực giao — tách riêng để lọc/thống kê theo khu vực
+  deliveryDate          DateTime
+  deliveryTime          String?
+  cardMessage           String?
+  note                  String?
+  status                OrderStatus   @default(NEW)
+  paymentMethod         PaymentMethod @default(COD)
+  paymentStatus         PaymentStatus @default(UNPAID)
   // Gateway's own transaction id (VNPay vnp_TransactionNo / MoMo transId /
   // ZaloPay zp_trans_id) — set once the IPN/callback confirms payment, kept
   // for reconciliation against the gateway's own dashboard.
   paymentTransactionRef String?
-  subtotal        Int
-  shippingFee     Int           @default(0)
-  discountAmount  Int           @default(0)
-  total           Int
-  voucherId       String?
-  voucher         Voucher?      @relation(fields: [voucherId], references: [id])
-  source          OrderSource   @default(DIRECT)
-  createdById     String?
-  createdBy       User?         @relation(fields: [createdById], references: [id])
-  stockDeductedAt DateTime? // set once, on transition into ARRANGING; used to gate restock-on-cancel
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  subtotal              Int
+  shippingFee           Int           @default(0)
+  discountAmount        Int           @default(0)
+  // Tiền cọc đã nhận (đơn thủ công) — "còn phải thu" luôn tính khi đọc
+  // (total - depositAmount, hoặc 0 nếu đã PAID), không lưu cột riêng để
+  // tránh lệch dữ liệu.
+  depositAmount         Int           @default(0)
+  total                 Int
+  voucherId             String?
+  voucher               Voucher?      @relation(fields: [voucherId], references: [id])
+  source                OrderSource   @default(DIRECT)
+  // Kênh khách đặt hàng (Zalo/điện thoại/tại shop/...) — khác source ở trên
+  // (source là tracking quảng cáo). Storefront checkout không set field này,
+  // luôn mặc định WEB.
+  channel               OrderChannel  @default(WEB)
+  createdById           String?
+  createdBy             User?         @relation(fields: [createdById], references: [id])
+  stockDeductedAt       DateTime? // set once, on transition into ARRANGING; used to gate restock-on-cancel
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
   reviews       ProductReview[]
+  images        OrderImage[]
 
   @@index([status])
   @@index([customerId])
   @@index([deliveryDate])
   @@index([createdAt])
+  @@index([channel])
+}
+
+model OrderImage {
+  id           String         @id @default(cuid())
+  orderId      String
+  order        Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  url          String
+  storageKey   String?
+  altText      String?
+  kind         OrderImageKind @default(REFERENCE)
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+
+  @@index([orderId])
 }
 
 model OrderItem {
