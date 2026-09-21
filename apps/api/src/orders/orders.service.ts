@@ -37,6 +37,7 @@ const ORDER_DETAIL_INCLUDE = {
   voucher: { select: { id: true, code: true } },
   createdBy: { select: { id: true, name: true } },
   items: true,
+  images: { orderBy: { displayOrder: 'asc' } },
   statusHistory: {
     include: { changedBy: { select: { id: true, name: true } } },
     orderBy: { changedAt: 'asc' },
