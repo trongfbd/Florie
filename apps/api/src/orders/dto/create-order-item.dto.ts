@@ -35,7 +35,8 @@ export class CreateOrderItemDto {
   customPrice?: number;
 
   @ApiPropertyOptional({
-    description: 'VND — giá vốn, dùng để tính lợi nhuận gộp ở Reports, không bắt buộc',
+    description:
+      'VND — giá vốn, dùng để tính lợi nhuận gộp ở Reports, không bắt buộc',
   })
   @IsOptional()
   @Type(() => Number)

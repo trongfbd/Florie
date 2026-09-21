@@ -6,6 +6,7 @@ import {
   deleteOrderImage,
   fetchOrder,
   fetchOrders,
+  updateItemCostPrice,
   updateOrder,
   updateOrderPayment,
 } from "./api";
@@ -55,6 +56,15 @@ export function useUpdateOrderPayment(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: UpdatePaymentInput) => updateOrderPayment(id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+}
+
+export function useUpdateItemCostPrice(orderId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, costPrice }: { itemId: string; costPrice: number }) =>
+      updateItemCostPrice(orderId, itemId, costPrice),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
   });
 }

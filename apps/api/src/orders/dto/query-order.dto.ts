@@ -46,11 +46,22 @@ export class QueryOrderDto extends PaginationQueryDto {
   @IsBoolean()
   overdue?: boolean;
 
-  @ApiPropertyOptional({ description: 'Only orders not yet fully PAID (UNPAID or DEPOSITED)' })
+  @ApiPropertyOptional({
+    description: 'Only orders not yet fully PAID (UNPAID or DEPOSITED)',
+  })
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
   unpaidOnly?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Only orders with at least one item missing a cost price (costPrice)',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  missingCostPrice?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

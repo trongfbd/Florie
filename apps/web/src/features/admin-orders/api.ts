@@ -47,6 +47,18 @@ export async function updateOrderPayment(id: string, input: UpdatePaymentInput):
   return data;
 }
 
+export async function updateItemCostPrice(
+  orderId: string,
+  itemId: string,
+  costPrice: number,
+): Promise<OrderDetail> {
+  const { data } = await adminApiClient.patch<OrderDetail>(
+    `/api/v1/orders/${orderId}/items/${itemId}/cost-price`,
+    { costPrice },
+  );
+  return data;
+}
+
 export async function addOrderImage(
   orderId: string,
   file: File,

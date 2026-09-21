@@ -254,6 +254,7 @@ export class OrdersService {
         },
       }),
       ...(query.unpaidOnly && { paymentStatus: { not: PaymentStatus.PAID } }),
+      ...(query.missingCostPrice && { items: { some: { costPrice: null } } }),
     };
 
     const [data, total] = await this.prisma.$transaction([
@@ -317,6 +318,28 @@ export class OrdersService {
       },
       include: ORDER_DETAIL_INCLUDE,
     });
+  }
+
+  /** Backfill a missing costPrice on one order item — editable regardless of
+   * order status (unlike update()'s logistics fields) since this is purely a
+   * bookkeeping correction for Reports' gross-profit figures, including on
+   * already-COMPLETED orders. */
+  async updateItemCostPrice(
+    orderId: string,
+    itemId: string,
+    costPrice: number,
+  ): Promise<OrderDetail> {
+    const item = await this.prisma.orderItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!item || item.orderId !== orderId) {
+      throw new NotFoundException('Không tìm thấy mục trong đơn hàng');
+    }
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: { costPrice },
+    });
+    return this.findOne(orderId);
   }
 
   /** Reference images (ảnh mẫu khách gửi qua Zalo/Facebook) — same

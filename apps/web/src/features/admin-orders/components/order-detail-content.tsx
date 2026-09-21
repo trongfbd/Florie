@@ -12,6 +12,7 @@ import { ALLOWED_TRANSITIONS } from "../lib/status-transitions";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONE } from "../lib/payment-status-labels";
 import { OrderStatusBadge } from "./order-status-badge";
 import { OrderImagesManager } from "./order-images-manager";
+import { ItemCostPriceEditor } from "./item-cost-price-editor";
 import { ShippingInfoSection } from "./shipping-info-section";
 
 function formatDateTime(iso: string): string {
@@ -116,11 +117,14 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
             <h2 className="font-display text-lg font-bold text-heading">Sản phẩm</h2>
             <ul className="divide-y divide-secondary">
               {order.items.map((item) => (
-                <li key={item.id} className="flex justify-between py-2 text-sm">
-                  <span>
-                    {item.itemName} × {item.quantity}
-                  </span>
-                  <span className="font-medium text-heading">{formatVnd(item.subtotal)}</span>
+                <li key={item.id} className="space-y-1.5 py-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>
+                      {item.itemName} × {item.quantity}
+                    </span>
+                    <span className="font-medium text-heading">{formatVnd(item.subtotal)}</span>
+                  </div>
+                  <ItemCostPriceEditor orderId={order.id} item={item} />
                 </li>
               ))}
             </ul>

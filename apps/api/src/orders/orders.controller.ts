@@ -25,6 +25,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { QueryOrderDto } from './dto/query-order.dto';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { UpdateItemCostPriceDto } from './dto/update-item-cost-price.dto';
 import { AddOrderImageDto } from './dto/add-order-image.dto';
 
 @ApiTags('orders')
@@ -80,6 +81,19 @@ export class OrdersController {
   })
   updatePayment(@Param('id') id: string, @Body() dto: UpdatePaymentDto) {
     return this.ordersService.updatePayment(id, dto);
+  }
+
+  @Patch(':id/items/:itemId/cost-price')
+  @ApiOperation({
+    summary:
+      'Bổ sung/sửa giá gốc cho 1 mục trong đơn — không phụ thuộc trạng thái đơn',
+  })
+  updateItemCostPrice(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemCostPriceDto,
+  ) {
+    return this.ordersService.updateItemCostPrice(id, itemId, dto.costPrice);
   }
 
   @Post(':id/images')

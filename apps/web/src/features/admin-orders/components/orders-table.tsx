@@ -23,7 +23,7 @@ const STATUS_OPTIONS: OrderStatus[] = [
   "CANCELLED",
 ];
 
-type Tab = "today" | "tomorrow" | "upcoming" | "overdue" | "unpaid" | "all";
+type Tab = "today" | "tomorrow" | "upcoming" | "overdue" | "unpaid" | "missingCostPrice" | "all";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "today", label: "Hôm nay" },
@@ -31,6 +31,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "upcoming", label: "Sắp tới" },
   { key: "overdue", label: "Quá hạn/Trễ" },
   { key: "unpaid", label: "Chưa thanh toán đủ" },
+  { key: "missingCostPrice", label: "Thiếu giá gốc" },
   { key: "all", label: "Tất cả" },
 ];
 
@@ -53,6 +54,8 @@ function tabFilter(tab: Tab, dates: { today: string; tomorrow: string; dayAfter:
       return { overdue: true };
     case "unpaid":
       return { unpaidOnly: true };
+    case "missingCostPrice":
+      return { missingCostPrice: true };
     case "all":
       return {};
   }
@@ -159,12 +162,14 @@ export function OrdersTable() {
   const { data: upcomingCount } = useOrders({ ...tabFilter("upcoming", dates), limit: 1 });
   const { data: overdueCount } = useOrders({ ...tabFilter("overdue", dates), limit: 1 });
   const { data: unpaidCount } = useOrders({ ...tabFilter("unpaid", dates), limit: 1 });
+  const { data: missingCostPriceCount } = useOrders({ ...tabFilter("missingCostPrice", dates), limit: 1 });
   const tabCounts: Partial<Record<Tab, number>> = {
     today: todayStats.count,
     tomorrow: tomorrowCount?.meta.total,
     upcoming: upcomingCount?.meta.total,
     overdue: overdueCount?.meta.total,
     unpaid: unpaidCount?.meta.total,
+    missingCostPrice: missingCostPriceCount?.meta.total,
   };
 
   return (

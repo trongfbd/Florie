@@ -45,6 +45,7 @@ export interface OrderItemRow {
   itemName: string;
   quantity: number;
   unitPrice: number;
+  costPrice: number | null;
   subtotal: number;
 }
 
@@ -83,6 +84,7 @@ export interface QueryOrdersInput {
   channel?: OrderChannel;
   overdue?: boolean;
   unpaidOnly?: boolean;
+  missingCostPrice?: boolean;
   customerId?: string;
   voucherId?: string;
   deliveryDateFrom?: string;
