@@ -468,6 +468,7 @@ export class OrdersService {
           itemName: item.customName,
           quantity: item.quantity,
           unitPrice: item.customPrice,
+          costPrice: item.customCostPrice,
           subtotal: item.customPrice * item.quantity,
         });
         subtotal += item.customPrice * item.quantity;

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Trash2 } from "lucide-react";
+import { ImagePlus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { useProductOptions } from "@/features/admin-products/hooks";
 import { useCombos } from "@/features/admin-combos/hooks";
@@ -12,6 +12,7 @@ import { useCustomers } from "@/features/admin-customers/hooks";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { formatVnd } from "@/lib/format";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-method-labels";
+import { addOrderImage } from "../api";
 import { useCreateOrder, useOrders } from "../hooks";
 import { DELIVERY_SLOTS } from "../lib/delivery-slots";
 import { ORDER_CHANNEL_LABELS } from "../lib/channel-labels";
@@ -43,7 +44,14 @@ type FormValues = z.infer<typeof schema>;
 type ItemRow =
   | { mode: "product"; productId: string; quantity: number }
   | { mode: "combo"; comboId: string; quantity: number }
-  | { mode: "custom"; customName: string; customPrice: number; quantity: number };
+  | {
+      mode: "custom";
+      customName: string;
+      customPrice: number;
+      customCostPrice: number | null;
+      imageFile: File | null;
+      quantity: number;
+    };
 
 export function CreateOrderContent() {
   const router = useRouter();
@@ -107,7 +115,10 @@ export function CreateOrderContent() {
       if (!first) return;
       setItems((prev) => [...prev, { mode: "combo", comboId: first.id, quantity: 1 }]);
     } else {
-      setItems((prev) => [...prev, { mode: "custom", customName: "", customPrice: 0, quantity: 1 }]);
+      setItems((prev) => [
+        ...prev,
+        { mode: "custom", customName: "", customPrice: 0, customCostPrice: null, imageFile: null, quantity: 1 },
+      ]);
     }
     setItemsError(null);
   }
@@ -133,7 +144,9 @@ export function CreateOrderContent() {
     return sum + item.customPrice * item.quantity;
   }, 0);
 
-  function onSubmit(values: FormValues) {
+  const [isAttachingImages, setIsAttachingImages] = useState(false);
+
+  async function onSubmit(values: FormValues) {
     if (items.length === 0) {
       setItemsError("Cần ít nhất 1 sản phẩm/mẫu trong đơn.");
       return;
@@ -149,30 +162,47 @@ export function CreateOrderContent() {
     const resolvedItems: CreateOrderItemInput[] = items.map((item) => {
       if (item.mode === "product") return { productId: item.productId, quantity: item.quantity };
       if (item.mode === "combo") return { comboId: item.comboId, quantity: item.quantity };
-      return { customName: item.customName, customPrice: item.customPrice, quantity: item.quantity };
+      return {
+        customName: item.customName,
+        customPrice: item.customPrice,
+        customCostPrice: item.customCostPrice ?? undefined,
+        quantity: item.quantity,
+      };
     });
 
-    createMutation.mutate(
-      {
-        guestName: values.guestName,
-        guestPhone: values.guestPhone,
-        recipientName: values.recipientName,
-        recipientPhone: values.recipientPhone,
-        deliveryAddress: values.deliveryAddress,
-        deliveryDistrict: values.deliveryDistrict || undefined,
-        deliveryDate: values.deliveryDate,
-        deliveryTime: values.deliveryTime || undefined,
-        cardMessage: values.cardMessage || undefined,
-        note: values.note || undefined,
-        channel: values.channel,
-        paymentMethod: values.paymentMethod,
-        shippingFee: values.shippingFee,
-        depositAmount: values.depositAmount,
-        voucherCode: values.voucherCode || undefined,
-        items: resolvedItems,
-      },
-      { onSuccess: (order) => router.push(`/admin/don-hang/${order.id}`) },
+    const order = await createMutation.mutateAsync({
+      guestName: values.guestName,
+      guestPhone: values.guestPhone,
+      recipientName: values.recipientName,
+      recipientPhone: values.recipientPhone,
+      deliveryAddress: values.deliveryAddress,
+      deliveryDistrict: values.deliveryDistrict || undefined,
+      deliveryDate: values.deliveryDate,
+      deliveryTime: values.deliveryTime || undefined,
+      cardMessage: values.cardMessage || undefined,
+      note: values.note || undefined,
+      channel: values.channel,
+      paymentMethod: values.paymentMethod,
+      shippingFee: values.shippingFee,
+      depositAmount: values.depositAmount,
+      voucherCode: values.voucherCode || undefined,
+      items: resolvedItems,
+    });
+
+    // Ảnh mẫu đính kèm lúc tạo -- tải lên sau khi đơn đã có id, tốt nhất có
+    // thể (không chặn điều hướng nếu 1 ảnh nào đó lỗi, đơn vẫn đã tạo xong).
+    const pendingImages = items.filter(
+      (item): item is Extract<ItemRow, { mode: "custom" }> => item.mode === "custom" && !!item.imageFile,
     );
+    if (pendingImages.length > 0) {
+      setIsAttachingImages(true);
+      await Promise.allSettled(
+        pendingImages.map((item) => addOrderImage(order.id, item.imageFile as File, item.customName)),
+      );
+      setIsAttachingImages(false);
+    }
+
+    router.push(`/admin/don-hang/${order.id}`);
   }
 
   return (
@@ -342,7 +372,8 @@ export function CreateOrderContent() {
         {items.length === 0 && <p className="text-sm text-foreground/50">Chưa có sản phẩm nào.</p>}
 
         {items.map((item, index) => (
-          <div key={index} className="flex items-center gap-2 rounded-lg bg-secondary/20 p-2">
+          <div key={index} className="space-y-2 rounded-lg bg-secondary/20 p-2">
+          <div className="flex items-center gap-2">
             {item.mode === "product" && (
               <select
                 value={item.productId}
@@ -370,22 +401,22 @@ export function CreateOrderContent() {
               </select>
             )}
             {item.mode === "custom" && (
-              <>
-                <input
-                  placeholder="Tên mẫu (VD: Bó hoa theo mẫu khách gửi)"
-                  value={item.customName}
-                  onChange={(e) => updateItem(index, { customName: e.target.value })}
-                  className="flex-1 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-sm outline-none focus:border-accent"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="Giá"
-                  value={item.customPrice || ""}
-                  onChange={(e) => updateItem(index, { customPrice: Number(e.target.value) })}
-                  className="w-28 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-sm outline-none focus:border-accent"
-                />
-              </>
+              <input
+                placeholder="Tên mẫu (VD: Bó hoa theo mẫu khách gửi)"
+                value={item.customName}
+                onChange={(e) => updateItem(index, { customName: e.target.value })}
+                className="flex-1 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            )}
+            {item.mode === "custom" && (
+              <input
+                type="number"
+                min={0}
+                placeholder="Giá bán"
+                value={item.customPrice || ""}
+                onChange={(e) => updateItem(index, { customPrice: Number(e.target.value) })}
+                className="w-28 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+              />
             )}
             <input
               type="number"
@@ -403,9 +434,35 @@ export function CreateOrderContent() {
               <Trash2 size={18} />
             </button>
           </div>
+
+          {item.mode === "custom" && (
+            <div className="flex items-center gap-2 pl-1">
+              <input
+                type="number"
+                min={0}
+                placeholder="Giá gốc (không bắt buộc)"
+                value={item.customCostPrice ?? ""}
+                onChange={(e) =>
+                  updateItem(index, { customCostPrice: e.target.value ? Number(e.target.value) : null })
+                }
+                className="w-40 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-xs outline-none focus:border-accent"
+              />
+              <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-dashed border-secondary bg-white px-3 py-2 text-xs font-semibold text-foreground/60 hover:border-accent hover:text-accent">
+                <ImagePlus size={14} />
+                {item.imageFile ? item.imageFile.name.slice(0, 20) : "Ảnh mẫu"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => updateItem(index, { imageFile: e.target.files?.[0] ?? null })}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-foreground/40">Giá gốc dùng để tính lợi nhuận ở Báo cáo</p>
+            </div>
+          )}
+          </div>
         ))}
         {itemsError && <p className="text-xs text-destructive">{itemsError}</p>}
-        <p className="text-sm text-foreground/50">Ảnh mẫu khách gửi có thể thêm sau khi lưu đơn.</p>
       </section>
 
       <section className="space-y-4 rounded-brand border-2 border-secondary bg-white p-5">
@@ -463,10 +520,10 @@ export function CreateOrderContent() {
 
       <button
         type="submit"
-        disabled={createMutation.isPending}
+        disabled={createMutation.isPending || isAttachingImages}
         className="rounded-full bg-accent px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition-transform hover:scale-105 disabled:opacity-60"
       >
-        {createMutation.isPending ? "Đang lưu..." : "Lưu đơn hàng"}
+        {isAttachingImages ? "Đang tải ảnh..." : createMutation.isPending ? "Đang lưu..." : "Lưu đơn hàng"}
       </button>
     </form>
   );

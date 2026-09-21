@@ -116,6 +116,7 @@ export interface CreateOrderItemInput {
   comboId?: string;
   customName?: string;
   customPrice?: number;
+  customCostPrice?: number;
   quantity: number;
 }
 
