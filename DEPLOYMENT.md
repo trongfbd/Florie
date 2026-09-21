@@ -303,6 +303,39 @@ guarded restores. For unattended backups, add a host cron job instead:
 
 **Restarting a single service**: `docker compose --env-file .env.production -f docker-compose.prod.yml restart api`
 
+## Migrating to a new VPS (full backup & restore)
+
+The admin UI's Backup & Restore page (`/admin/sao-luu`) and the cron job
+above only cover the **database** — not product/blog images (stored in
+MinIO, a separate Docker volume), and not `.env.production` or
+`nginx/florie.conf`, both deliberately outside git (secrets, and a
+domain-specific hand-edit made directly on the server — see Section 4's
+note). Copying just the git repo to a new box is missing all of that.
+
+`scripts/backup-full.sh` and `scripts/restore-full.sh` bundle everything
+needed into one file:
+
+**On the current server**, from the repo root:
+```bash
+./scripts/backup-full.sh
+# -> backups/florie-full-backup-<timestamp>.tar.gz
+```
+Copy that single file off the server (`scp`), e.g. to your own machine, then
+on to the new VPS.
+
+**On the new VPS**: follow DEPLOYMENT.md Section 2 (install Docker,
+`git clone` the repo) — but stop before Section 3/4, since the restore
+script fills in `.env.production` and `nginx/florie.conf` for you:
+```bash
+./scripts/restore-full.sh /path/to/florie-full-backup-<timestamp>.tar.gz
+```
+This loads the database and MinIO data, then prints the remaining steps:
+issue **fresh** SSL certs (Section 4 — certs are intentionally not part of
+the backup; reissuing is free and takes a minute, and sidesteps copying
+Let's Encrypt account state), point DNS at the new IP, then
+`docker compose up -d --build` to bring up api/web/nginx, and verify per
+Section 7.
+
 ## What this guide deliberately does not cover
 
 - **Multi-server/HA/load-balancing** — out of scope, this project is

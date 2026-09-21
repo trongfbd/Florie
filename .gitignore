@@ -33,6 +33,9 @@ pnpm-debug.log*
 # Docker volumes (bind-mounted data, not source)
 .docker/
 
+# scripts/backup-full.sh output — contains DB dumps/images, never commit
+backups/
+
 # IDE
 .vscode/*
 !.vscode/extensions.json
