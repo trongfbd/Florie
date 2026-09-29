@@ -6,16 +6,24 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { UserRole } from '@prisma/client';
 import type { Notification } from '@prisma/client';
 import type { Server, Socket } from 'socket.io';
 import { UsersService } from '../users/users.service';
 import type { JwtPayload } from '../auth/types/jwt-payload.type';
 
+function roleRoom(role: UserRole): string {
+  return `role:${role}`;
+}
+
 // Free, self-hosted real-time push for the admin Notification Center —
 // socket.io runs inside this same Nest process, no third-party service
-// (Firebase/Supabase, etc.) needed. Every connected admin/staff client
-// joins one shared "admins" room since notifications are shop-wide, not
-// per-user; there's no per-connection state to track beyond that.
+// (Firebase/Supabase, etc.) needed. Every connected client joins the shared
+// "admins" room (shop-wide notifications, e.g. new customer) plus a
+// role-specific room so role-targeted notifications (see
+// NotificationsService.create's targetRole) only reach who they're for.
+// ADMIN also joins every other role's room — they see everything, and this
+// avoids the emit side having to special-case "ADMIN" as an extra target.
 // path is under /api/ (not socket.io's own default "/socket.io/") so the
 // existing nginx `location /api/` block routes this to the api container
 // too, in production — see nginx/florie.conf. Client side (use-
@@ -48,7 +56,15 @@ export class NotificationsGateway implements OnGatewayConnection {
       if (!user || !user.isActive) {
         throw new UnauthorizedException();
       }
+      // Dùng user.role vừa fetch từ DB (không dùng role trong JWT payload) —
+      // đổi role có hiệu lực ngay khi socket này kết nối lại, không cần đợi
+      // access token hết hạn, đúng convention JwtStrategy đang dùng.
       await client.join('admins');
+      await client.join(roleRoom(user.role));
+      if (user.role === UserRole.ADMIN) {
+        await client.join(roleRoom(UserRole.OPERATIONS_ADMIN));
+        await client.join(roleRoom(UserRole.STAFF));
+      }
     } catch {
       this.logger.warn(
         `Rejected notifications socket connection: ${client.id}`,
@@ -70,5 +86,9 @@ export class NotificationsGateway implements OnGatewayConnection {
 
   emitNew(notification: Notification): void {
     this.server.to('admins').emit('notification:new', notification);
+  }
+
+  emitToRole(role: UserRole, notification: Notification): void {
+    this.server.to(roleRoom(role)).emit('notification:new', notification);
   }
 }

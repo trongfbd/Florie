@@ -6,6 +6,7 @@ import { Printer } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-method-labels";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { useChangeOrderStatus, useOrder, useUpdateOrderPayment } from "../hooks";
 import { ALLOWED_TRANSITIONS } from "../lib/status-transitions";
@@ -13,6 +14,7 @@ import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONE } from "../lib/payment-statu
 import { OrderStatusBadge } from "./order-status-badge";
 import { OrderImagesManager } from "./order-images-manager";
 import { ItemCostPriceEditor } from "./item-cost-price-editor";
+import { ShippingFeeEditor } from "./shipping-fee-editor";
 import { ShippingInfoSection } from "./shipping-info-section";
 
 function formatDateTime(iso: string): string {
@@ -29,6 +31,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
   const { data: order, isLoading } = useOrder(orderId);
   const changeStatus = useChangeOrderStatus(orderId);
   const updatePayment = useUpdateOrderPayment(orderId);
+  const role = useAdminAuthStore((state) => state.admin?.role);
   const [note, setNote] = useState("");
   const [depositInput, setDepositInput] = useState("");
 
@@ -83,7 +86,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
 
       {changeStatus.isError && (
         <p className="rounded-lg bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          Không thể chuyển trạng thái — vui lòng thử lại.
+          {getErrorMessage(changeStatus.error, "Không thể chuyển trạng thái — vui lòng thử lại.")}
         </p>
       )}
 
@@ -124,7 +127,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
                     </span>
                     <span className="font-medium text-heading">{formatVnd(item.subtotal)}</span>
                   </div>
-                  <ItemCostPriceEditor orderId={order.id} item={item} />
+                  {role === "ADMIN" && <ItemCostPriceEditor orderId={order.id} item={item} />}
                 </li>
               ))}
             </ul>
@@ -139,10 +142,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
                   <span>-{formatVnd(order.discountAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-foreground/70">
-                <span>Phí vận chuyển</span>
-                <span>{formatVnd(order.shippingFee)}</span>
-              </div>
+              <ShippingFeeEditor order={order} />
               <div className="flex justify-between text-base font-bold text-heading">
                 <span>Tổng cộng</span>
                 <span>{formatVnd(order.total)}</span>

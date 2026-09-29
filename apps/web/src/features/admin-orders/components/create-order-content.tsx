@@ -12,6 +12,7 @@ import { useCustomers } from "@/features/admin-customers/hooks";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { formatVnd } from "@/lib/format";
 import { PAYMENT_METHOD_LABELS } from "@/lib/payment-method-labels";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
 import { addOrderImage } from "../api";
 import { useCreateOrder, useOrders } from "../hooks";
 import { DELIVERY_SLOTS } from "../lib/delivery-slots";
@@ -41,6 +42,15 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+function RequiredMark() {
+  return (
+    <span className="text-destructive" aria-hidden="true">
+      {" "}
+      *
+    </span>
+  );
+}
+
 type ItemRow =
   | { mode: "product"; productId: string; quantity: number }
   | { mode: "combo"; comboId: string; quantity: number }
@@ -55,6 +65,7 @@ type ItemRow =
 
 export function CreateOrderContent() {
   const router = useRouter();
+  const role = useAdminAuthStore((state) => state.admin?.role);
   const { data: productsData } = useProductOptions();
   const { data: combosData } = useCombos({ page: 1 });
   const createMutation = useCreateOrder();
@@ -211,7 +222,10 @@ export function CreateOrderContent() {
         <h2 className="font-display text-lg font-bold text-heading">Người đặt</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-heading">Số điện thoại</label>
+            <label className="text-sm font-semibold text-heading">
+              Số điện thoại
+              <RequiredMark />
+            </label>
             <input
               {...register("guestPhone")}
               className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
@@ -222,7 +236,10 @@ export function CreateOrderContent() {
             )}
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-heading">Tên người đặt</label>
+            <label className="text-sm font-semibold text-heading">
+              Tên người đặt
+              <RequiredMark />
+            </label>
             <input
               {...register("guestName")}
               className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
@@ -249,7 +266,10 @@ export function CreateOrderContent() {
         <h2 className="font-display text-lg font-bold text-heading">Người nhận &amp; giao hàng</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-heading">Tên người nhận</label>
+            <label className="text-sm font-semibold text-heading">
+              Tên người nhận
+              <RequiredMark />
+            </label>
             <input
               {...register("recipientName")}
               className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
@@ -259,7 +279,10 @@ export function CreateOrderContent() {
             )}
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-heading">SĐT người nhận</label>
+            <label className="text-sm font-semibold text-heading">
+              SĐT người nhận
+              <RequiredMark />
+            </label>
             <input
               {...register("recipientPhone")}
               className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
@@ -272,7 +295,10 @@ export function CreateOrderContent() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1 sm:col-span-2">
-            <label className="text-sm font-semibold text-heading">Địa chỉ giao</label>
+            <label className="text-sm font-semibold text-heading">
+              Địa chỉ giao
+              <RequiredMark />
+            </label>
             <input
               {...register("deliveryAddress")}
               className="w-full rounded-lg border-2 border-secondary px-3 py-2 text-sm outline-none focus:border-accent"
@@ -299,7 +325,10 @@ export function CreateOrderContent() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-heading">Ngày giao</label>
+            <label className="text-sm font-semibold text-heading">
+              Ngày giao
+              <RequiredMark />
+            </label>
             <input
               type="date"
               {...register("deliveryDate")}
@@ -343,7 +372,10 @@ export function CreateOrderContent() {
 
       <section className="space-y-3 rounded-brand border-2 border-secondary bg-white p-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-heading">Sản phẩm</h2>
+          <h2 className="font-display text-lg font-bold text-heading">
+            Sản phẩm
+            <RequiredMark />
+          </h2>
           <div className="flex gap-2">
             <button
               type="button"
@@ -437,16 +469,21 @@ export function CreateOrderContent() {
 
           {item.mode === "custom" && (
             <div className="flex items-center gap-2 pl-1">
-              <input
-                type="number"
-                min={0}
-                placeholder="Giá gốc (không bắt buộc)"
-                value={item.customCostPrice ?? ""}
-                onChange={(e) =>
-                  updateItem(index, { customCostPrice: e.target.value ? Number(e.target.value) : null })
-                }
-                className="w-40 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-xs outline-none focus:border-accent"
-              />
+              {role === "ADMIN" && (
+                <>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Giá gốc (không bắt buộc)"
+                    value={item.customCostPrice ?? ""}
+                    onChange={(e) =>
+                      updateItem(index, { customCostPrice: e.target.value ? Number(e.target.value) : null })
+                    }
+                    className="w-40 rounded-lg border-2 border-secondary bg-white px-3 py-2 text-xs outline-none focus:border-accent"
+                  />
+                  <p className="text-xs text-foreground/40">Giá gốc dùng để tính lợi nhuận ở Báo cáo</p>
+                </>
+              )}
               <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-dashed border-secondary bg-white px-3 py-2 text-xs font-semibold text-foreground/60 hover:border-accent hover:text-accent">
                 <ImagePlus size={14} />
                 {item.imageFile ? item.imageFile.name.slice(0, 20) : "Ảnh mẫu"}
@@ -457,7 +494,6 @@ export function CreateOrderContent() {
                   className="hidden"
                 />
               </label>
-              <p className="text-xs text-foreground/40">Giá gốc dùng để tính lợi nhuận ở Báo cáo</p>
             </div>
           )}
           </div>

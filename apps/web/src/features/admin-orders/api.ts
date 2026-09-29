@@ -47,6 +47,13 @@ export async function updateOrderPayment(id: string, input: UpdatePaymentInput):
   return data;
 }
 
+export async function updateShippingFee(orderId: string, shippingFee: number): Promise<OrderDetail> {
+  const { data } = await adminApiClient.patch<OrderDetail>(`/api/v1/orders/${orderId}/shipping-fee`, {
+    shippingFee,
+  });
+  return data;
+}
+
 export async function updateItemCostPrice(
   orderId: string,
   itemId: string,

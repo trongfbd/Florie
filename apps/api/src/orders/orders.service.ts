@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -13,6 +14,7 @@ import {
   PaymentStatus,
   Prisma,
   ProductStatus,
+  UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -89,6 +91,13 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.CANCELLED]: [],
 };
 
+const OPS_ROLES = [UserRole.ADMIN, UserRole.OPERATIONS_ADMIN];
+const ALL_STAFF_ROLES = [
+  UserRole.ADMIN,
+  UserRole.OPERATIONS_ADMIN,
+  UserRole.STAFF,
+];
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -102,6 +111,7 @@ export class OrdersService {
   async create(
     dto: CreateOrderDto,
     actorUserId?: string,
+    actorRole?: UserRole,
   ): Promise<OrderDetail> {
     if (!dto.customerId && !(dto.guestName && dto.guestPhone)) {
       throw new BadRequestException(
@@ -135,7 +145,7 @@ export class OrdersService {
     }
 
     const { items, subtotal, flashSaleIncrements } =
-      await this.resolveOrderItems(dto.items, !!actorUserId);
+      await this.resolveOrderItems(dto.items, !!actorUserId, actorRole);
     const { voucherId, discountAmount } = await this.resolveVoucher(
       dto.voucherCode,
       subtotal,
@@ -206,6 +216,7 @@ export class OrdersService {
       'Đơn hàng mới',
       `Đơn hàng ${created.orderNumber} vừa được tạo, tổng tiền ${total.toLocaleString('vi-VN')}đ`,
       created.id,
+      UserRole.OPERATIONS_ADMIN,
     );
 
     return this.findOne(created.id);
@@ -342,6 +353,39 @@ export class OrdersService {
     return this.findOne(orderId);
   }
 
+  /** Sửa phí ship thực tế (VD: chỉ biết giá sau khi book Grab lúc giao) —
+   * độc lập với mọi bước chuyển trạng thái, luôn tính lại và lưu total
+   * cùng lúc để hóa đơn/còn phải thu không bao giờ lệch với shippingFee.
+   * Khoá lại khi đơn đã COMPLETED (đã cộng vào Customer.totalSpent, sửa
+   * sau đó sẽ làm lệch số tổng chi tiêu của khách mà không tự điều chỉnh
+   * lại) hoặc đã CANCELLED (không còn ý nghĩa). */
+  async updateShippingFee(
+    orderId: string,
+    shippingFee: number,
+  ): Promise<OrderDetail> {
+    const order = await this.findOne(orderId);
+
+    if (
+      order.status === OrderStatus.COMPLETED ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new ConflictException(
+        'Không thể sửa phí ship khi đơn đã hoàn thành hoặc đã huỷ',
+      );
+    }
+
+    const total = Math.max(
+      0,
+      order.subtotal + shippingFee - order.discountAmount,
+    );
+
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { shippingFee, total },
+      include: ORDER_DETAIL_INCLUDE,
+    });
+  }
+
   /** Reference images (ảnh mẫu khách gửi qua Zalo/Facebook) — same
    * upload/delete shape as ProductsService.addImage/removeImage. */
   async addImage(
@@ -390,6 +434,7 @@ export class OrdersService {
     id: string,
     dto: ChangeOrderStatusDto,
     actorUserId: string,
+    actorRole: UserRole,
   ): Promise<OrderDetail> {
     const order = await this.prisma.order.findUnique({
       where: { id },
@@ -403,6 +448,16 @@ export class OrdersService {
     if (!allowedNext.includes(dto.toStatus)) {
       throw new BadRequestException(
         `Không thể chuyển đơn hàng từ trạng thái ${order.status} sang ${dto.toStatus}`,
+      );
+    }
+
+    const allowedRoles = this.getAllowedRolesForTransition(
+      order.status,
+      dto.toStatus,
+    );
+    if (!allowedRoles.includes(actorRole)) {
+      throw new ForbiddenException(
+        `Vai trò hiện tại không được phép chuyển đơn hàng sang trạng thái ${dto.toStatus}`,
       );
     }
 
@@ -440,12 +495,56 @@ export class OrdersService {
       });
     });
 
+    // Không nhắc tới tiền trong nội dung — STAFF sẽ đọc trực tiếp thông báo
+    // "Đã xác nhận" và không được thấy bất kỳ số tiền nào trên đơn hàng.
+    if (dto.toStatus === OrderStatus.CONFIRMED) {
+      await this.notificationsService.create(
+        'NEW_ORDER',
+        'Đơn hàng cần cắm hoa',
+        `Đơn hàng ${order.orderNumber} đã xác nhận, sẵn sàng cắm hoa`,
+        order.id,
+        UserRole.STAFF,
+      );
+    }
+    if (dto.toStatus === OrderStatus.READY) {
+      await this.notificationsService.create(
+        'NEW_ORDER',
+        'Đơn hàng chờ giao',
+        `Đơn hàng ${order.orderNumber} đã cắm hoa xong, chờ giao — cần book Grab và cập nhật phí ship`,
+        order.id,
+        UserRole.OPERATIONS_ADMIN,
+      );
+    }
+
     return this.findOne(id);
+  }
+
+  /** Vai trò được phép thực hiện 1 bước chuyển trạng thái cụ thể — bảng
+   * quyết định đã chốt: STAFF chỉ vận hành nội bộ (cắm hoa), không đụng tới
+   * khâu duyệt đơn/giao hàng/huỷ đơn; huỷ đơn (từ bất kỳ trạng thái nào)
+   * luôn là ADMIN/OPERATIONS_ADMIN. */
+  private getAllowedRolesForTransition(
+    from: OrderStatus,
+    to: OrderStatus,
+  ): UserRole[] {
+    if (to === OrderStatus.CANCELLED) {
+      return OPS_ROLES;
+    }
+    if (
+      (from === OrderStatus.CONFIRMED && to === OrderStatus.ARRANGING) ||
+      (from === OrderStatus.ARRANGING && to === OrderStatus.READY)
+    ) {
+      return ALL_STAFF_ROLES;
+    }
+    // Mới→Đã xác nhận, Chờ giao→Đang giao, Đang giao→Đã giao/Giao thất bại,
+    // Giao thất bại→Đang giao (giao lại): chỉ vận hành, không phải STAFF.
+    return OPS_ROLES;
   }
 
   private async resolveOrderItems(
     items: CreateOrderItemDto[],
     allowCustomItems: boolean,
+    actorRole?: UserRole,
   ): Promise<{
     items: ResolvedOrderItem[];
     subtotal: number;
@@ -485,6 +584,18 @@ export class OrdersService {
         if (item.customPrice === undefined) {
           throw new BadRequestException(
             'Mẫu tuỳ chỉnh cần có giá (customPrice)',
+          );
+        }
+        // Chỉ ADMIN được tự nhập giá gốc — nếu không chặn, OPERATIONS_ADMIN
+        // có thể tự set customCostPrice khi thêm mẫu tuỳ chỉnh, vô hiệu hoá
+        // hoàn toàn việc ẩn giá gốc với role này. Từ chối rõ ràng (400),
+        // không âm thầm bỏ qua giá trị gửi lên.
+        if (
+          item.customCostPrice !== undefined &&
+          actorRole !== UserRole.ADMIN
+        ) {
+          throw new BadRequestException(
+            'Chỉ Quản trị viên được nhập giá gốc (customCostPrice) cho mẫu tuỳ chỉnh',
           );
         }
         resolved.push({

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OrderDetailContent } from "@/features/admin-orders/components/order-detail-content";
+import { OrderDetailPageContent } from "@/features/admin-orders/components/order-detail-page-content";
 
 export const metadata: Metadata = { title: "Chi tiết đơn hàng", robots: { index: false } };
 
@@ -9,5 +9,5 @@ interface AdminOrderDetailPageProps {
 
 export default async function AdminOrderDetailPage({ params }: AdminOrderDetailPageProps) {
   const { id } = await params;
-  return <OrderDetailContent orderId={id} />;
+  return <OrderDetailPageContent orderId={id} />;
 }

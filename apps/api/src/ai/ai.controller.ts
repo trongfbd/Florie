@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AiService } from './ai.service';
 import { GenerateContentDto } from './dto/generate-content.dto';
 import { ChatMessageDto } from './dto/chat-message.dto';
@@ -10,7 +12,10 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Get('status')
-  @ApiOperation({ summary: 'Kiểm tra tính năng AI đã được cấu hình (có GEMINI_API_KEY) hay chưa' })
+  @ApiOperation({
+    summary:
+      'Kiểm tra tính năng AI đã được cấu hình (có GEMINI_API_KEY) hay chưa',
+  })
   getStatus() {
     return { configured: this.aiService.isConfigured };
   }
@@ -22,13 +27,19 @@ export class AiController {
   }
 
   @Post('sales-assistant')
-  @ApiOperation({ summary: 'Trợ lý AI gợi ý sản phẩm phù hợp theo yêu cầu khách hàng' })
+  @ApiOperation({
+    summary: 'Trợ lý AI gợi ý sản phẩm phù hợp theo yêu cầu khách hàng',
+  })
   salesAssistant(@Body() dto: ChatMessageDto) {
     return this.aiService.salesAssistant(dto);
   }
 
   @Post('dashboard-qa')
-  @ApiOperation({ summary: 'Hỏi đáp bằng ngôn ngữ tự nhiên dựa trên dữ liệu kinh doanh thực tế' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary:
+      'Hỏi đáp bằng ngôn ngữ tự nhiên dựa trên dữ liệu kinh doanh thực tế',
+  })
   dashboardQa(@Body() dto: ChatMessageDto) {
     return this.aiService.dashboardQa(dto);
   }

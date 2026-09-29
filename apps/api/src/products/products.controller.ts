@@ -17,7 +17,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/types/jwt-payload.type';
 import { ProductsService } from './products.service';
+import { redactProductForRole } from './product-redaction.util';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
@@ -31,26 +34,50 @@ export class ProductsController {
 
   @Post()
   @ApiOperation({ summary: 'Tạo sản phẩm' })
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  async create(
+    @Body() dto: CreateProductDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const product = await this.productsService.create(dto);
+    return redactProductForRole(product, user.role);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách sản phẩm (phân trang/tìm kiếm/lọc/sắp xếp)' })
-  findAll(@Query() query: QueryProductDto) {
-    return this.productsService.findAll(query);
+  @ApiOperation({
+    summary: 'Danh sách sản phẩm (phân trang/tìm kiếm/lọc/sắp xếp)',
+  })
+  async findAll(
+    @Query() query: QueryProductDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const result = await this.productsService.findAll(query);
+    return {
+      ...result,
+      data: result.data.map((product) =>
+        redactProductForRole(product, user.role),
+      ),
+    };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết sản phẩm' })
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const product = await this.productsService.findOne(id);
+    return redactProductForRole(product, user.role);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Cập nhật sản phẩm' })
-  update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
-    return this.productsService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const product = await this.productsService.update(id, dto);
+    return redactProductForRole(product, user.role);
   }
 
   @Delete(':id')
@@ -88,7 +115,9 @@ export class ProductsController {
   }
 
   @Patch(':id/materials')
-  @ApiOperation({ summary: 'Thiết lập công thức bó hoa (BOM) — thay toàn bộ danh sách' })
+  @ApiOperation({
+    summary: 'Thiết lập công thức bó hoa (BOM) — thay toàn bộ danh sách',
+  })
   setMaterials(@Param('id') id: string, @Body() dto: SetProductMaterialsDto) {
     return this.productsService.setMaterials(id, dto);
   }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatVnd } from "@/lib/format";
 import { getErrorMessage } from "@/lib/get-error-message";
+import { SearchResultToast, useSearchResultToast } from "@/components/admin/search-result-toast";
 import { createProduct, fetchProduct } from "../api";
 import { useDeleteProduct, useProducts } from "../hooks";
 
@@ -30,7 +31,8 @@ export function ProductsTable() {
   const [searchInput, setSearchInput] = useState("");
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
-  const { data, isLoading } = useProducts({ page, search: search || undefined });
+  const { data, isLoading, isFetching } = useProducts({ page, search: search || undefined });
+  const searchToast = useSearchResultToast(search, data, isLoading);
   const deleteMutation = useDeleteProduct();
 
   function handleDelete(id: string, name: string) {
@@ -87,9 +89,10 @@ export function ProductsTable() {
         />
         <button
           type="submit"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
+          disabled={isFetching}
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
         >
-          Tìm
+          {isFetching ? "Đang tìm..." : "Tìm"}
         </button>
       </form>
 
@@ -200,6 +203,8 @@ export function ProductsTable() {
           </button>
         </div>
       )}
+
+      {searchToast.toast && <SearchResultToast toast={searchToast.toast} onDismiss={searchToast.dismiss} />}
     </div>
   );
 }

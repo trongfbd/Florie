@@ -13,6 +13,10 @@ datasource db {
 
 enum UserRole {
   ADMIN
+  // Vận hành đầy đủ (đơn hàng, thanh toán, phí ship...) nhưng không thấy
+  // giá gốc/giá vốn ở bất kỳ đâu (đơn hàng, sản phẩm, vật tư).
+  OPERATIONS_ADMIN
+  // Chỉ xử lý nội bộ (cắm hoa) — không thấy tiền, không tạo/huỷ đơn.
   STAFF
 }
 
@@ -781,6 +785,9 @@ model Notification {
   message         String
   isRead          Boolean          @default(false)
   relatedEntityId String?
+  // null = thông báo chung (mọi role thấy, VD khách mới); nếu có giá trị thì
+  // chỉ role đó + ADMIN thấy được (ADMIN luôn thấy tất cả).
+  targetRole      UserRole?
   createdAt       DateTime         @default(now())
 
   @@index([isRead])

@@ -1,10 +1,16 @@
 import { create } from "zustand";
 
+// Hand-duplicated from Prisma's UserRole enum (no shared types package
+// between apps/api and apps/web) — keep in sync manually when the enum
+// changes. ADMIN unchanged/full access, OPERATIONS_ADMIN sees money but not
+// cost price, STAFF sees neither.
+export type AdminRole = "ADMIN" | "OPERATIONS_ADMIN" | "STAFF";
+
 export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "STAFF";
+  role: AdminRole;
 }
 
 interface AdminAuthState {

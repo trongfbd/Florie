@@ -11,13 +11,17 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/types/jwt-payload.type';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { QueryExpenseDto } from './dto/query-expense.dto';
 
+// Chi phí vận hành shop — chỉ ADMIN được xem/ghi nhận.
+@Roles(UserRole.ADMIN)
 @ApiTags('expenses')
 @Controller('expenses')
 export class ExpensesController {
@@ -25,12 +29,17 @@ export class ExpensesController {
 
   @Post()
   @ApiOperation({ summary: 'Ghi nhận khoản chi' })
-  create(@Body() dto: CreateExpenseDto, @CurrentUser() user: AuthenticatedUser) {
+  create(
+    @Body() dto: CreateExpenseDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.expensesService.create(dto, user.id);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách khoản chi (phân trang/tìm kiếm/lọc/sắp xếp)' })
+  @ApiOperation({
+    summary: 'Danh sách khoản chi (phân trang/tìm kiếm/lọc/sắp xếp)',
+  })
   findAll(@Query() query: QueryExpenseDto) {
     return this.expensesService.findAll(query);
   }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Ticket } from "lucide-react";
 import { formatVnd } from "@/lib/format";
+import { SearchResultToast, useSearchResultToast } from "@/components/admin/search-result-toast";
 import { useCustomers } from "../hooks";
 
 export function CustomersTable() {
@@ -12,7 +13,12 @@ export function CustomersTable() {
   const [searchInput, setSearchInput] = useState("");
   const [vipOnly, setVipOnly] = useState(false);
 
-  const { data, isLoading } = useCustomers({ page, search: search || undefined, isVip: vipOnly || undefined });
+  const { data, isLoading, isFetching } = useCustomers({
+    page,
+    search: search || undefined,
+    isVip: vipOnly || undefined,
+  });
+  const searchToast = useSearchResultToast(search, data, isLoading);
 
   return (
     <div className="space-y-4">
@@ -33,9 +39,10 @@ export function CustomersTable() {
           />
           <button
             type="submit"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
+            disabled={isFetching}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
           >
-            Tìm
+            {isFetching ? "Đang tìm..." : "Tìm"}
           </button>
         </form>
         <label className="flex items-center gap-2 rounded-lg border-2 border-secondary px-3 py-2 text-sm font-medium text-heading">
@@ -125,6 +132,8 @@ export function CustomersTable() {
           </button>
         </div>
       )}
+
+      {searchToast.toast && <SearchResultToast toast={searchToast.toast} onDismiss={searchToast.dismiss} />}
     </div>
   );
 }

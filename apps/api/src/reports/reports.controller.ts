@@ -1,23 +1,31 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ReportsService } from './reports.service';
 import { ReportDateRangeDto } from './dto/report-date-range.dto';
 import { RevenueSeriesQueryDto } from './dto/revenue-series-query.dto';
 import { TopProductsQueryDto } from './dto/top-products-query.dto';
 
+// Toàn bộ báo cáo đều lộ doanh thu/lợi nhuận — chỉ ADMIN được xem.
+@Roles(UserRole.ADMIN)
 @ApiTags('reports')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('summary')
-  @ApiOperation({ summary: 'Tổng quan doanh thu/chi phí/lợi nhuận trong khoảng thời gian' })
+  @ApiOperation({
+    summary: 'Tổng quan doanh thu/chi phí/lợi nhuận trong khoảng thời gian',
+  })
   getSummary(@Query() query: ReportDateRangeDto) {
     return this.reportsService.getSummary(query);
   }
 
   @Get('revenue-series')
-  @ApiOperation({ summary: 'Doanh thu theo thời gian (ngày/tuần/tháng) — dữ liệu cho biểu đồ' })
+  @ApiOperation({
+    summary: 'Doanh thu theo thời gian (ngày/tuần/tháng) — dữ liệu cho biểu đồ',
+  })
   getRevenueSeries(@Query() query: RevenueSeriesQueryDto) {
     return this.reportsService.getRevenueSeries(query);
   }

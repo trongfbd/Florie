@@ -6,6 +6,7 @@ import { useAdminAuthStore } from "@/stores/admin-auth-store";
 import { useAdminUiStore } from "@/stores/admin-ui-store";
 import { useLogoutAdmin } from "@/features/admin-auth/hooks";
 import { NotificationBell } from "@/features/admin-notifications/components/notification-bell";
+import { ADMIN_ROLE_LABELS } from "@/lib/admin-role-labels";
 
 export function AdminTopbar() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function AdminTopbar() {
         <NotificationBell />
         <div className="text-right text-sm">
           <p className="font-semibold text-heading">{admin?.name}</p>
-          <p className="text-xs text-foreground/50">{admin?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}</p>
+          <p className="text-xs text-foreground/50">{admin ? ADMIN_ROLE_LABELS[admin.role] : ""}</p>
         </div>
         <button
           type="button"

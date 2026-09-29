@@ -9,6 +9,7 @@ import {
   updateItemCostPrice,
   updateOrder,
   updateOrderPayment,
+  updateShippingFee,
 } from "./api";
 import type { CreateOrderInput, OrderStatus, QueryOrdersInput, UpdateOrderInput, UpdatePaymentInput } from "./types";
 
@@ -56,6 +57,14 @@ export function useUpdateOrderPayment(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: UpdatePaymentInput) => updateOrderPayment(id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+}
+
+export function useUpdateShippingFee(orderId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (shippingFee: number) => updateShippingFee(orderId, shippingFee),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
   });
 }

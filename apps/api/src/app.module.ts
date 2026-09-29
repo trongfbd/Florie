@@ -41,7 +41,12 @@ import { RolesGuard } from './auth/guards/roles.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 20 }]),
+    // 20/phút quá thấp cho 1 trang admin — riêng Đơn hàng đã bắn ~7 request
+    // song song mỗi lần tải (danh sách + thống kê + đếm từng tab), và mọi
+    // nhân viên trong shop dùng chung 1 IP văn phòng sẽ dùng chung 1 bucket
+    // này. Đăng nhập đã có giới hạn riêng chặt hơn (@Throttle 5/phút trên
+    // AuthController.login) nên nâng mức chung không làm yếu chống brute-force.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     PrismaModule,
     StorageModule,
     HealthModule,

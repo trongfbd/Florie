@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { formatVnd } from "@/lib/format";
+import { getErrorMessage } from "@/lib/get-error-message";
+import { SearchResultToast, useSearchResultToast } from "@/components/admin/search-result-toast";
+import { useAdminAuthStore } from "@/stores/admin-auth-store";
 import { ORDER_STATUS_LABELS } from "@/features/order-tracking/status-labels";
 import { useChangeOrderStatus, useOrders } from "../hooks";
-import { ALLOWED_TRANSITIONS } from "../lib/status-transitions";
+import { ALLOWED_TRANSITIONS, canTransition } from "../lib/status-transitions";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONE } from "../lib/payment-status-labels";
 import { ORDER_CHANNEL_LABELS } from "../lib/channel-labels";
 import { parseSlotStartHour } from "../lib/delivery-slots";
@@ -95,31 +98,45 @@ function formatDate(iso: string): string {
 
 function QuickStatusSelect({ order }: { order: OrderListItem }) {
   const changeStatus = useChangeOrderStatus(order.id);
-  const nextOptions = ALLOWED_TRANSITIONS[order.status];
+  const role = useAdminAuthStore((state) => state.admin?.role);
+  const nextOptions = ALLOWED_TRANSITIONS[order.status].filter(
+    (next) => role && canTransition(order.status, next, role),
+  );
 
   if (nextOptions.length === 0) return <span className="text-xs text-foreground/40">—</span>;
 
   return (
-    <select
-      value=""
-      disabled={changeStatus.isPending}
-      onChange={(e) => {
-        const value = e.target.value as OrderStatus;
-        if (value) changeStatus.mutate({ toStatus: value });
-      }}
-      className="rounded-lg border-2 border-secondary bg-white px-2 py-1 text-xs outline-none focus:border-accent disabled:opacity-60"
-    >
-      <option value="">Đổi trạng thái...</option>
-      {nextOptions.map((status) => (
-        <option key={status} value={status}>
-          {ORDER_STATUS_LABELS[status]}
-        </option>
-      ))}
-    </select>
+    <div className="flex flex-col items-end gap-1">
+      <select
+        value=""
+        disabled={changeStatus.isPending}
+        onChange={(e) => {
+          const value = e.target.value as OrderStatus;
+          if (value) changeStatus.mutate({ toStatus: value });
+        }}
+        className="rounded-lg border-2 border-secondary bg-white px-2 py-1 text-xs outline-none focus:border-accent disabled:opacity-60"
+      >
+        <option value="">Đổi trạng thái...</option>
+        {nextOptions.map((status) => (
+          <option key={status} value={status}>
+            {ORDER_STATUS_LABELS[status]}
+          </option>
+        ))}
+      </select>
+      {changeStatus.isError && (
+        <p className="max-w-[12rem] text-right text-xs text-destructive">
+          {getErrorMessage(changeStatus.error, "Không thể chuyển trạng thái.")}
+        </p>
+      )}
+    </div>
   );
 }
 
 export function OrdersTable() {
+  const role = useAdminAuthStore((state) => state.admin?.role);
+  const canSeeMoney = role !== "STAFF";
+  const columnCount = canSeeMoney ? 8 : 5;
+
   const [tab, setTab] = useState<Tab>("today");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -141,12 +158,13 @@ export function OrdersTable() {
   }, [now]);
 
   const activeFilter = tabFilter(tab, dates);
-  const { data, isLoading } = useOrders({
+  const { data, isLoading, isFetching, isError, error, refetch } = useOrders({
     page,
     search: search || undefined,
     status: status || undefined,
     ...activeFilter,
   });
+  const searchToast = useSearchResultToast(search, data, isLoading);
 
   // Thẻ thống kê luôn tính theo "Hôm nay", không phụ thuộc tab đang xem.
   const { data: todayData } = useOrders({ deliveryDateFrom: dates.today, deliveryDateTo: dates.today, limit: 100 });
@@ -174,22 +192,24 @@ export function OrdersTable() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-brand border-2 border-secondary bg-white p-3">
-          <p className="text-xs text-foreground/50">Đơn giao hôm nay</p>
-          <p className="font-display text-xl font-bold text-heading">{todayStats.count}</p>
+      {canSeeMoney && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-brand border-2 border-secondary bg-white p-3">
+            <p className="text-xs text-foreground/50">Đơn giao hôm nay</p>
+            <p className="font-display text-xl font-bold text-heading">{todayStats.count}</p>
+          </div>
+          <div className="rounded-brand border-2 border-secondary bg-white p-3">
+            <p className="text-xs text-foreground/50">Đã giao / còn lại</p>
+            <p className="font-display text-xl font-bold text-heading">
+              {todayStats.delivered}/{todayStats.count}
+            </p>
+          </div>
+          <div className="rounded-brand border-2 border-secondary bg-white p-3">
+            <p className="text-xs text-foreground/50">Còn phải thu hôm nay</p>
+            <p className="font-display text-xl font-bold text-accent">{formatVnd(todayStats.totalDue)}</p>
+          </div>
         </div>
-        <div className="rounded-brand border-2 border-secondary bg-white p-3">
-          <p className="text-xs text-foreground/50">Đã giao / còn lại</p>
-          <p className="font-display text-xl font-bold text-heading">
-            {todayStats.delivered}/{todayStats.count}
-          </p>
-        </div>
-        <div className="rounded-brand border-2 border-secondary bg-white p-3">
-          <p className="text-xs text-foreground/50">Còn phải thu hôm nay</p>
-          <p className="font-display text-xl font-bold text-accent">{formatVnd(todayStats.totalDue)}</p>
-        </div>
-      </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
@@ -228,9 +248,10 @@ export function OrdersTable() {
             />
             <button
               type="submit"
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
+              disabled={isFetching}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
             >
-              Tìm
+              {isFetching ? "Đang tìm..." : "Tìm"}
             </button>
           </form>
 
@@ -251,12 +272,14 @@ export function OrdersTable() {
           </select>
         </div>
 
-        <Link
-          href="/admin/don-hang/moi"
-          className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition-transform hover:scale-105"
-        >
-          + Tạo đơn hàng
-        </Link>
+        {role !== "STAFF" && (
+          <Link
+            href="/admin/don-hang/moi"
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition-transform hover:scale-105"
+          >
+            + Tạo đơn hàng
+          </Link>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-brand border-2 border-secondary bg-white">
@@ -266,31 +289,41 @@ export function OrdersTable() {
               <th className="px-4 py-3">Mã đơn</th>
               <th className="px-4 py-3">Người nhận</th>
               <th className="px-4 py-3">Ngày giao</th>
-              <th className="px-4 py-3">Kênh</th>
+              {canSeeMoney && <th className="px-4 py-3">Kênh</th>}
               <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">Thanh toán</th>
-              <th className="px-4 py-3 text-right">Còn phải thu</th>
+              {canSeeMoney && <th className="px-4 py-3">Thanh toán</th>}
+              {canSeeMoney && <th className="px-4 py-3 text-right">Còn phải thu</th>}
               <th className="px-4 py-3 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-secondary">
             {isLoading && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-foreground/50">
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-foreground/50">
                   Đang tải...
                 </td>
               </tr>
             )}
-            {!isLoading && data?.data.length === 0 && (
+            {isError && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-foreground/50">
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-destructive">
+                  {getErrorMessage(error, "Không tải được danh sách đơn hàng.")}{" "}
+                  <button type="button" onClick={() => refetch()} className="font-semibold underline">
+                    Thử lại
+                  </button>
+                </td>
+              </tr>
+            )}
+            {!isLoading && !isError && data?.data.length === 0 && (
+              <tr>
+                <td colSpan={columnCount} className="px-4 py-8 text-center text-foreground/50">
                   Không tìm thấy đơn hàng nào.
                 </td>
               </tr>
             )}
             {data?.data.map((order) => {
               const urgency = getRowUrgency(order, now, dates.today);
-              const amountDue = order.status === "COMPLETED" ? 0 : order.total - order.depositAmount;
+              const amountDue = canSeeMoney && order.status !== "COMPLETED" ? order.total - order.depositAmount : 0;
               return (
                 <tr key={order.id} className={`hover:bg-secondary/20 ${URGENCY_ROW_CLASS[urgency]}`}>
                   <td className="px-4 py-3">
@@ -306,18 +339,24 @@ export function OrdersTable() {
                     {formatDate(order.deliveryDate)}
                     {order.deliveryTime && <span className="block text-xs text-foreground/50">{order.deliveryTime}</span>}
                   </td>
-                  <td className="px-4 py-3 text-xs text-foreground/60">{ORDER_CHANNEL_LABELS[order.channel]}</td>
+                  {canSeeMoney && (
+                    <td className="px-4 py-3 text-xs text-foreground/60">{ORDER_CHANNEL_LABELS[order.channel]}</td>
+                  )}
                   <td className="px-4 py-3">
                     <OrderStatusBadge status={order.status} />
                   </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PAYMENT_STATUS_TONE[order.paymentStatus]}`}
-                    >
-                      {PAYMENT_STATUS_LABELS[order.paymentStatus]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-heading">{formatVnd(amountDue)}</td>
+                  {canSeeMoney && (
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PAYMENT_STATUS_TONE[order.paymentStatus]}`}
+                      >
+                        {PAYMENT_STATUS_LABELS[order.paymentStatus]}
+                      </span>
+                    </td>
+                  )}
+                  {canSeeMoney && (
+                    <td className="px-4 py-3 text-right font-semibold text-heading">{formatVnd(amountDue)}</td>
+                  )}
                   <td className="px-4 py-3 text-right">
                     <QuickStatusSelect order={order} />
                   </td>
@@ -351,6 +390,8 @@ export function OrdersTable() {
           </button>
         </div>
       )}
+
+      {searchToast.toast && <SearchResultToast toast={searchToast.toast} onDismiss={searchToast.dismiss} />}
     </div>
   );
 }

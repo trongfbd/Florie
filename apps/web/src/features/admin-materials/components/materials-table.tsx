@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { MATERIAL_TYPE_LABELS } from "@/lib/material-type-labels";
+import { SearchResultToast, useSearchResultToast } from "@/components/admin/search-result-toast";
 import { useDeleteMaterial, useMaterials } from "../hooks";
 
 function isLowStock(material: { stockQuantity: string; minStockThreshold: string }): boolean {
@@ -16,7 +17,12 @@ export function MaterialsTable() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
-  const { data, isLoading } = useMaterials({ page, search: search || undefined, lowStock: lowStockOnly || undefined });
+  const { data, isLoading, isFetching } = useMaterials({
+    page,
+    search: search || undefined,
+    lowStock: lowStockOnly || undefined,
+  });
+  const searchToast = useSearchResultToast(search, data, isLoading);
   const deleteMutation = useDeleteMaterial();
 
   function handleDelete(id: string, name: string) {
@@ -45,9 +51,10 @@ export function MaterialsTable() {
           />
           <button
             type="submit"
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105"
+            disabled={isFetching}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
           >
-            Tìm
+            {isFetching ? "Đang tìm..." : "Tìm"}
           </button>
         </form>
 
@@ -161,6 +168,8 @@ export function MaterialsTable() {
           </button>
         </div>
       )}
+
+      {searchToast.toast && <SearchResultToast toast={searchToast.toast} onDismiss={searchToast.dismiss} />}
     </div>
   );
 }
